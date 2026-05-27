@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-
 const OFFERS = {
   boost_annonce: {
     name: 'Remonter mon annonce',
@@ -56,6 +54,7 @@ export async function POST(req: NextRequest) {
   }
 
   const stripe = new Stripe(stripeKey, { apiVersion: '2026-04-22.dahlia' });
+  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || `https://${req.headers.get('host')}`;
 
   try {
     const body = await req.json() as {
