@@ -106,40 +106,26 @@ export default function PublierMissionPage() {
       tarif: parseFloat(tarif),
       est_urgent: boost === 'sos',
       boost: boost,
-      statut: isParticulier ? 'en_attente_paiement' : 'active',
       ...(isPro && moisNum > 0 && { duree_mois: moisNum, commission_totale: commissionMontant }),
-      ...(isParticulier && { statut_paiement: 'en_attente', montant_paye: coutTotal }),
     };
 
-    const { data: newMission, error: dbError } = await supabase
-      .from('missions')
-      .insert(missionData)
-      .select('id')
-      .single();
+    const res = await fetch('/api/missions/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        missionData,
+        isParticulier,
+        coutTotal,
+        userEmail: user.email,
+      }),
+    });
 
+    const data = await res.json();
     setLoading(false);
 
-    if (dbError || !newMission) {
-      setError(`Erreur : ${dbError?.message || 'Impossible de créer la mission'}`);
-      return;
-    }
+    if (data.error) { setError(data.error); return; }
 
-    // Particulier → paiement Stripe obligatoire
-    if (isParticulier) {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          offerId: 'mission_publication',
-          missionId: newMission.id,
-          missionTitre: titre.trim(),
-          montant: Math.round(coutTotal * 100),
-          userId: user.id,
-          userEmail: user.email,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) { setError(data.error); return; }
+    if (isParticulier && data.url) {
       window.location.href = data.url;
       return;
     }
