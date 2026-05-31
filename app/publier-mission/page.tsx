@@ -90,33 +90,57 @@ export default function PublierMissionPage() {
     setLoading(true);
     setError('');
 
-    const { error: dbError } = await supabase
+    const isParticulier = userProfile?.statut === 'particulier';
+
+    const missionData = {
+      employeur_id: user.id,
+      titre: titre.trim(),
+      description: description.trim(),
+      ville: ville.trim(),
+      emoji: getEmoji(titre),
+      type: 'Mission',
+      duree: duree ? `${duree}h` : '',
+      date_mission: date,
+      horaires: horaires.trim(),
+      profil_requis: profilRequis.trim(),
+      tarif: parseFloat(tarif),
+      est_urgent: boost === 'sos',
+      boost: boost,
+      statut: isParticulier ? 'en_attente_paiement' : 'active',
+      ...(isPro && moisNum > 0 && { duree_mois: moisNum, commission_totale: commissionMontant }),
+      ...(isParticulier && { statut_paiement: 'en_attente', montant_paye: coutTotal }),
+    };
+
+    const { data: newMission, error: dbError } = await supabase
       .from('missions')
-      .insert({
-        employeur_id: user.id,
-        titre: titre.trim(),
-        description: description.trim(),
-        ville: ville.trim(),
-        emoji: getEmoji(titre),
-        type: 'Mission',
-        duree: duree ? `${duree}h` : '',
-        date_mission: date,
-        horaires: horaires.trim(),
-        profil_requis: profilRequis.trim(),
-        tarif: parseFloat(tarif),
-        est_urgent: boost === 'sos',
-        boost: boost,
-        statut: 'active',
-        ...(isPro && moisNum > 0 && {
-          duree_mois: moisNum,
-          commission_totale: commissionMontant,
-        }),
-      });
+      .insert(missionData)
+      .select('id')
+      .single();
 
     setLoading(false);
 
-    if (dbError) {
-      setError(`Erreur : ${dbError.message}`);
+    if (dbError || !newMission) {
+      setError(`Erreur : ${dbError?.message || 'Impossible de créer la mission'}`);
+      return;
+    }
+
+    // Particulier → paiement Stripe obligatoire
+    if (isParticulier) {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offerId: 'mission_publication',
+          missionId: newMission.id,
+          missionTitre: titre.trim(),
+          montant: Math.round(coutTotal * 100),
+          userId: user.id,
+          userEmail: user.email,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) { setError(data.error); return; }
+      window.location.href = data.url;
       return;
     }
 

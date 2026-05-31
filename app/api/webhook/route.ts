@@ -39,6 +39,19 @@ export async function POST(req: NextRequest) {
         created_at: new Date().toISOString(),
       });
 
+      // Activation de la mission après paiement (particuliers)
+      if (offerId === 'mission_publication' && missionId) {
+        await supabaseAdmin
+          .from('missions')
+          .update({
+            statut: 'active',
+            stripe_payment_id: session.payment_intent as string,
+            montant_paye: (session.amount_total ?? 0) / 100,
+            statut_paiement: 'paye',
+          })
+          .eq('id', missionId);
+      }
+
       // XP bonus pour les travailleurs qui s'abonnent au pack visibilité
       if (offerId === 'pack_visibilite_travailleur') {
         const { data: profile } = await supabaseAdmin

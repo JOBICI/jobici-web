@@ -58,15 +58,44 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json() as {
-      offerId: OfferId;
+      offerId: OfferId | 'mission_publication';
       missionId?: string;
+      montant?: number;
+      missionTitre?: string;
       promoCode?: string;
       userId?: string;
       userEmail?: string;
     };
-    const { offerId, missionId, promoCode, userId, userEmail } = body;
+    const { offerId, missionId, montant, missionTitre, promoCode, userId, userEmail } = body;
 
-    const offer = OFFERS[offerId];
+    // Cas spécial : paiement de publication de mission (montant dynamique)
+    if (offerId === 'mission_publication') {
+      if (!montant || !missionId) {
+        return NextResponse.json({ error: 'Montant et missionId requis' }, { status: 400 });
+      }
+      const session = await stripe.checkout.sessions.create({
+        metadata: { offerId: 'mission_publication', missionId, ...(userId && { userId }) },
+        success_url: `${SITE_URL}/profil?mission=payee`,
+        cancel_url: `${SITE_URL}/publier-mission`,
+        locale: 'fr',
+        ...(userEmail && { customer_email: userEmail }),
+        mode: 'payment',
+        line_items: [{
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: missionTitre ? `Mission : ${missionTitre}` : 'Publication de mission',
+              description: 'Tarif travailleur + commission Jobici (15%) + options',
+            },
+            unit_amount: Math.round(montant),
+          },
+          quantity: 1,
+        }],
+      });
+      return NextResponse.json({ url: session.url });
+    }
+
+    const offer = OFFERS[offerId as OfferId];
     if (!offer) {
       return NextResponse.json({ error: 'Offre introuvable' }, { status: 400 });
     }

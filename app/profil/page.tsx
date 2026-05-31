@@ -19,8 +19,15 @@ export default function ProfilPage() {
   const router = useRouter();
   const { user, userProfile, loading: authLoading, logout, refreshProfile } = useAuth();
 
+  const [activeTab, setActiveTab] = useState<'profil' | 'missions'>('profil');
   const [editing, setEditing] = useState(false);
   const [saving, setSaving]   = useState(false);
+
+  // Missions publiées
+  type MissionPub = { id: string; titre: string; statut: string; statut_paiement: string | null; montant_paye: number | null; created_at: string; ville: string; tarif: number };
+  const [missions, setMissions] = useState<MissionPub[]>([]);
+  const [loadingMissions, setLoadingMissions] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Champs communs
   const [nom, setNom]     = useState('');
@@ -86,6 +93,37 @@ export default function ProfilPage() {
     setEditing(false);
     await refreshProfile();
     alert('✅ Profil mis à jour !');
+  }
+
+  async function loadMissions() {
+    if (!user) return;
+    setLoadingMissions(true);
+    const { data } = await supabase
+      .from('missions')
+      .select('id, titre, statut, statut_paiement, montant_paye, created_at, ville, tarif')
+      .eq('employeur_id', user.id)
+      .order('created_at', { ascending: false });
+    setMissions((data ?? []) as MissionPub[]);
+    setLoadingMissions(false);
+  }
+
+  async function supprimerMission(missionId: string, avecRemboursement: boolean) {
+    if (!user) return;
+    setDeletingId(missionId);
+    if (avecRemboursement) {
+      const res = await fetch('/api/missions/refund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ missionId, userId: user.id }),
+      });
+      const data = await res.json();
+      if (data.error) { alert('❌ ' + data.error); setDeletingId(null); return; }
+      alert('✅ Mission supprimée et remboursement en cours.');
+    } else {
+      await supabase.from('missions').delete().eq('id', missionId);
+    }
+    setDeletingId(null);
+    loadMissions();
   }
 
   async function uploadDocument(file: File, type: 'cni' | 'vitale') {
@@ -167,6 +205,84 @@ export default function ProfilPage() {
             </div>
           </div>
         </div>
+
+        {/* ONGLETS */}
+        {(userProfile?.statut === 'particulier' || userProfile?.statut === 'employer') && (
+          <div style={{ display: 'flex', gap: 4, background: 'white', borderRadius: 12, padding: 6, border: '1px solid var(--border)', marginBottom: 24 }}>
+            {(['profil', 'missions'] as const).map(tab => (
+              <button key={tab} onClick={() => { setActiveTab(tab); if (tab === 'missions') loadMissions(); }}
+                style={{
+                  flex: 1, padding: '10px 16px', border: 'none', borderRadius: 8,
+                  background: activeTab === tab ? 'var(--navy)' : 'transparent',
+                  color: activeTab === tab ? 'white' : 'var(--text-mid)',
+                  fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                {tab === 'profil' ? '👤 Mon profil' : '📋 Mes missions'}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ONGLET MISSIONS */}
+        {activeTab === 'missions' && (
+          <div>
+            {loadingMissions ? (
+              <div className="empty-state"><span className="big-emoji">⏳</span><h3>Chargement…</h3></div>
+            ) : missions.length === 0 ? (
+              <div className="empty-state">
+                <span className="big-emoji">📋</span>
+                <h3>Aucune mission publiée</h3>
+                <Link href="/publier-mission" style={{ color: 'var(--teal)', fontWeight: 700, marginTop: 12, display: 'inline-block' }}>
+                  Publier une mission →
+                </Link>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {missions.map(m => {
+                  const isPending = m.statut === 'en_attente_paiement';
+                  const isPaid = m.statut_paiement === 'paye';
+                  return (
+                    <div key={m.id} style={{ background: 'white', borderRadius: 14, padding: 20, border: '1px solid var(--border)', borderLeft: `4px solid ${isPending ? '#F59E0B' : m.statut === 'active' ? '#10B981' : '#CBD5E1'}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                        <div>
+                          <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>{m.titre}</h3>
+                          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>📍 {m.ville} · {new Date(m.created_at).toLocaleDateString('fr-FR')}</p>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: isPending ? '#FEF3C7' : '#D1FAE5', color: isPending ? '#92400E' : '#065F46' }}>
+                            {isPending ? '⏳ Paiement en attente' : '✅ Active'}
+                          </span>
+                          {m.montant_paye && <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)', marginTop: 4 }}>{m.montant_paye}€ {isPaid ? 'payé' : 'à payer'}</p>}
+                        </div>
+                      </div>
+                      <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <Link href={`/missions`} style={{ ...btnSmallStyle, background: 'var(--cream)', color: 'var(--navy)', textDecoration: 'none', border: '1px solid var(--border)' }}>
+                          Voir →
+                        </Link>
+                        <button
+                          onClick={() => {
+                            if (!confirm(`Supprimer "${m.titre}" ?${isPaid ? '\n\nVous serez remboursé automatiquement.' : ''}`)) return;
+                            supprimerMission(m.id, isPaid);
+                          }}
+                          disabled={deletingId === m.id}
+                          style={{ ...btnSmallStyle, background: '#FEE2E2', color: '#991B1B', border: 'none', opacity: deletingId === m.id ? 0.5 : 1 }}
+                        >
+                          {deletingId === m.id ? '⏳' : isPaid ? '🔄 Supprimer & rembourser' : '🗑️ Supprimer'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                <Link href="/publier-mission" style={{ display: 'block', textAlign: 'center', padding: '14px', background: 'var(--teal)', color: 'var(--navy)', borderRadius: 12, fontWeight: 800, fontSize: 14, textDecoration: 'none', marginTop: 8 }}>
+                  + Publier une nouvelle mission
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'profil' && (
+        <div>
 
         {/* VALIDATION SIRET */}
         {isPro && userProfile?.statut_validation === 'en_attente_siret' && (
@@ -384,6 +500,9 @@ export default function ProfilPage() {
           </button>
         </div>
 
+        </div>
+        )}
+
       </main>
       <Footer />
     </>
@@ -424,3 +543,4 @@ const valueStyle: React.CSSProperties = { fontSize: 15, color: 'var(--text-dark)
 const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: 'var(--cream)', outline: 'none', boxSizing: 'border-box' };
 const btnPrimaryStyle: React.CSSProperties = { background: 'var(--teal)', color: 'var(--navy)', padding: '8px 16px', borderRadius: 10, border: 'none', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' };
 const btnSecondaryStyle: React.CSSProperties = { background: 'transparent', color: 'var(--navy)', padding: '8px 16px', borderRadius: 10, border: '1.5px solid var(--border)', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' };
+const btnSmallStyle: React.CSSProperties = { padding: '7px 14px', borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' };
