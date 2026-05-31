@@ -240,7 +240,7 @@ export default function OffresPage() {
         // Session créée → code valide (on ne redirige pas, juste la validation)
         setPromoStatus('valid');
         setPromoCode(promoInput.trim());
-        showToast('info', '✅ Code promo validé ! Il sera appliqué à ta prochaine commande.');
+        showToast('info', '✅ Code promo validé ! Il sera appliqué à votre prochaine commande.');
       }
     } catch {
       setPromoStatus('invalid');
@@ -351,7 +351,7 @@ export default function OffresPage() {
                 'Notification push immédiate à tous les travailleurs disponibles',
                 'Annonce épinglée en tête pendant 7 jours',
                 'Badge "Urgent" visible sur la carte',
-                'Réponse garantie sous 2 heures',
+                'Notification push instantanée à tous les travailleurs disponibles dans votre zone.',
               ]}
               offerId="sos_annonce"
               onBuy={handleBuy}
@@ -403,7 +403,7 @@ export default function OffresPage() {
                 'Notification push immédiate à tous les travailleurs',
                 'Toutes les annonces épinglées en priorité',
                 'Badge "Urgent" automatique sur chaque annonce SOS',
-                'Réponse garantie sous 2 heures par annonce',
+                'Notification push instantanée à tous les travailleurs disponibles dans votre zone.',
                 'Engagement minimum 3 mois, résiliable ensuite.',
               ]}
               offerId="pack_mensuel_pro"
@@ -424,7 +424,7 @@ export default function OffresPage() {
         <main style={mainStyle}>
           <div style={headerStyle}>
             <h2 style={h2Style}>Sois vu en premier 👷</h2>
-            <p style={subtitleStyle}>Postule avant tout le monde et fais remonter ton profil auprès des recruteurs.</p>
+            <p style={subtitleStyle}>Postulez avant tout le monde et faites remonter votre profil auprès des recruteurs.</p>
           </div>
           <div style={{ ...gridStyle, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', maxWidth: 720, margin: '0 auto' }}>
             <OfferCard
@@ -437,7 +437,7 @@ export default function OffresPage() {
                 'Profil mis en avant dans les résultats — vu en premier par les pros',
                 'Notification 30 minutes avant la publication de chaque annonce pour postuler en avance',
                 'Accès prioritaire aux missions urgentes',
-                'Badge "Pro" sur ton profil',
+                'Badge "Pro" sur votre profil',
                 'Engagement minimum 3 mois, résiliable ensuite.',
               ]}
               offerId="pack_visibilite_travailleur"
@@ -457,8 +457,8 @@ export default function OffresPage() {
       {tab === 'auto-entrepreneur' && (
         <main style={mainStyle}>
           <div style={headerStyle}>
-            <h2 style={h2Style}>Développe ton activité 🧾</h2>
-            <p style={subtitleStyle}>Mets ton profil en avant et laisse les clients venir à toi directement.</p>
+            <h2 style={h2Style}>Développez votre activité 🧾</h2>
+            <p style={subtitleStyle}>Mettez votre profil en avant et laissez les clients venir à vous directement.</p>
           </div>
           <div style={{ ...gridStyle, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', maxWidth: 720, margin: '0 auto' }}>
             <OfferCard
@@ -471,7 +471,7 @@ export default function OffresPage() {
                 'Profil mis en avant dans les résultats de recherche',
                 'Les professionnels peuvent te contacter directement',
                 'Les particuliers peuvent te contacter directement',
-                'Badge "Vérifié Auto-Entrepreneur" sur ton profil',
+                'Badge "Vérifié Auto-Entrepreneur" sur votre profil',
                 'Accès aux missions pro exclusives',
                 'Engagement minimum 3 mois, résiliable ensuite.',
               ]}
@@ -483,7 +483,7 @@ export default function OffresPage() {
             />
           </div>
           <p style={noteStyle}>
-            ℹ️ Tu factures toujours via ton propre statut auto-entrepreneur. Jobici ne prend aucune commission sur tes gains.
+            ℹ️ Vous facturez toujours via votre propre statut auto-entrepreneur. Jobici ne prend aucune commission sur vos gains.
           </p>
         </main>
       )}
@@ -501,7 +501,7 @@ export default function OffresPage() {
               Tu as un code promo ?
             </h2>
             <p style={{ fontSize: 15, color: 'var(--text-mid)', lineHeight: 1.6, marginBottom: 28 }}>
-              Entre ton code ci-dessous pour bénéficier d'une réduction sur ta prochaine offre Jobici.
+              Entrez votre code ci-dessous pour bénéficier d'une réduction sur votre prochaine offre Jobici.
             </p>
 
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
@@ -541,7 +541,7 @@ export default function OffresPage() {
                 padding: '12px 16px', borderRadius: 10, fontSize: 14, fontWeight: 700,
                 marginBottom: 20,
               }}>
-                ✅ Code valide ! La réduction sera appliquée à ta prochaine commande.
+                ✅ Code valide ! La réduction sera appliquée à votre prochaine commande.
               </div>
             )}
             {promoStatus === 'invalid' && (

@@ -95,8 +95,8 @@ export default function Home() {
         ) : filtered.length === 0 ? (
           <div className="empty-state">
             <span className="big-emoji">🔍</span>
-            <h3>Aucune mission pour l'instant</h3>
-            <p>Reviens plus tard ou télécharge l'app pour être notifié.</p>
+            <h3>Aucune mission disponible pour le moment</h3>
+            <p>Revenez plus tard, de nouvelles missions sont publiées régulièrement.</p>
           </div>
         ) : (
           <div className="missions-grid">
@@ -107,10 +107,10 @@ export default function Home() {
         <div className="cta-box">
           <span className="cta-emoji">🎯</span>
           <div className="cta-text">
-            <h3>Tu cherches une mission spécifique ?</h3>
-            <p>Télécharge l'app Jobici pour accéder à toutes les missions près de chez toi en temps réel.</p>
+            <h3>Vous cherchez une mission spécifique ?</h3>
+            <p>Consultez toutes les missions disponibles près de chez vous et postulez en quelques clics.</p>
           </div>
-          <Link href="/contact" className="btn-primary">Télécharger l'app →</Link>
+          <Link href="/missions" className="btn-primary">Voir toutes les missions →</Link>
         </div>
       </main>
 
@@ -154,10 +154,10 @@ export default function Home() {
             <p>Trouvez des travailleurs qualifiés en quelques minutes pour vos missions ponctuelles ou récurrentes.</p>
             <span className="cta-arrow">Découvrir l'offre Pro →</span>
           </Link>
-          <Link href="/travailleurs" className="cta-card worker">
+          <Link href="/missions" className="cta-card worker">
             <span className="cta-emoji-big">👥</span>
-            <h3>Tu cherches du travail ?</h3>
-            <p>Accède à des missions près de chez toi, avec 0% de commission et un paiement sécurisé.</p>
+            <h3>Vous cherchez du travail ?</h3>
+            <p>Accédez à des missions près de chez vous, avec 0% de commission et un paiement sécurisé.</p>
             <span className="cta-arrow">Voir les missions →</span>
           </Link>
         </div>
