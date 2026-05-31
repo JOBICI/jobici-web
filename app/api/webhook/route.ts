@@ -38,6 +38,23 @@ export async function POST(req: NextRequest) {
         status: 'active',
         created_at: new Date().toISOString(),
       });
+
+      // XP bonus pour les travailleurs qui s'abonnent au pack visibilité
+      if (offerId === 'pack_visibilite_travailleur') {
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('xp_total')
+          .eq('id', userId)
+          .single();
+
+        const newXp = (profile?.xp_total ?? 0) + 200;
+        const niveau = newXp >= 2000 ? 5 : newXp >= 1000 ? 4 : newXp >= 500 ? 3 : newXp >= 200 ? 2 : 1;
+
+        await supabaseAdmin
+          .from('profiles')
+          .update({ xp_total: newXp, niveau })
+          .eq('id', userId);
+      }
     }
   }
 

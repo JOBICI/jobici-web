@@ -364,12 +364,12 @@ export default function OffresPage() {
               badge="Meilleure offre"
               title="Pack Mensuel"
               price="9,99 €"
-              priceDetail="/ mois · sans engagement"
+              priceDetail="/ mois · engagement 3 mois"
               bullets={[
                 'SOS Annonce inclus sur toutes vos annonces',
                 'Notification push illimitée',
                 'Toutes les annonces épinglées prioritaires',
-                'Résiliable à tout moment',
+                'Engagement minimum 3 mois, résiliable ensuite.',
               ]}
               offerId="pack_mensuel_particulier"
               onBuy={handleBuy}
@@ -394,17 +394,17 @@ export default function OffresPage() {
           <div style={{ ...gridStyle, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', maxWidth: 720, margin: '0 auto' }}>
             <OfferCard
               emoji="⚡"
-              badge="Sans engagement"
+              badge="Engagement 3 mois"
               title="Pack Mensuel Pro"
               price="9,99 €"
-              priceDetail="/ mois · sans engagement"
+              priceDetail="/ mois · engagement 3 mois"
               bullets={[
                 'SOS Annonce illimité sur toutes vos annonces',
                 'Notification push immédiate à tous les travailleurs',
                 'Toutes les annonces épinglées en priorité',
                 'Badge "Urgent" automatique sur chaque annonce SOS',
                 'Réponse garantie sous 2 heures par annonce',
-                'Résiliable à tout moment',
+                'Engagement minimum 3 mois, résiliable ensuite.',
               ]}
               offerId="pack_mensuel_pro"
               onBuy={handleBuy}
@@ -429,16 +429,16 @@ export default function OffresPage() {
           <div style={{ ...gridStyle, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', maxWidth: 720, margin: '0 auto' }}>
             <OfferCard
               emoji="⭐"
-              badge="Sans engagement"
+              badge="Engagement 3 mois"
               title="Pack Visibilité Travailleur"
               price="9,99 €"
-              priceDetail="/ mois · sans engagement"
+              priceDetail="/ mois · engagement 3 mois"
               bullets={[
                 'Profil mis en avant dans les résultats — vu en premier par les pros',
                 'Notification 30 minutes avant la publication de chaque annonce pour postuler en avance',
                 'Accès prioritaire aux missions urgentes',
                 'Badge "Pro" sur ton profil',
-                'Résiliable à tout moment',
+                'Engagement minimum 3 mois, résiliable ensuite.',
               ]}
               offerId="pack_visibilite_travailleur"
               onBuy={handleBuy}
@@ -463,17 +463,17 @@ export default function OffresPage() {
           <div style={{ ...gridStyle, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', maxWidth: 720, margin: '0 auto' }}>
             <OfferCard
               emoji="🧾"
-              badge="Sans engagement"
+              badge="Engagement 3 mois"
               title="Pack Visibilité Auto-Entrepreneur"
               price="9,99 €"
-              priceDetail="/ mois · sans engagement"
+              priceDetail="/ mois · engagement 3 mois"
               bullets={[
                 'Profil mis en avant dans les résultats de recherche',
                 'Les professionnels peuvent te contacter directement',
                 'Les particuliers peuvent te contacter directement',
                 'Badge "Vérifié Auto-Entrepreneur" sur ton profil',
                 'Accès aux missions pro exclusives',
-                'Résiliable à tout moment',
+                'Engagement minimum 3 mois, résiliable ensuite.',
               ]}
               offerId="pack_visibilite_auto"
               onBuy={handleBuy}

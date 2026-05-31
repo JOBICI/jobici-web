@@ -10,7 +10,7 @@ export default function CookieButton() {
         style={{
           background: 'none', border: 'none', padding: 0,
           cursor: 'pointer', fontFamily: 'inherit',
-          fontSize: 'inherit', color: 'inherit', textAlign: 'left',
+          fontSize: '13px', color: 'rgba(255,255,255,0.6)', textAlign: 'left',
         }}
       >
         Gérer mes cookies
