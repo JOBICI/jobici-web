@@ -35,35 +35,27 @@ export default function AutoEntrepreneursPage() {
 
   useEffect(() => {
     async function load() {
-      // Charger tous les auto-entrepreneurs
-      const { data: autos } = await supabase
-        .from('profiles')
-        .select('id, nom, ville, avatar_lettre, siret, metier, bio, note_moyenne, nb_missions, xp_total, niveau')
-        .eq('statut', 'autoentrepreneur')
-        .order('xp_total', { ascending: false });
-
-      if (!autos) { setLoading(false); return; }
-
-      // Charger les achats actifs pour savoir qui a le pack visibilité
+      // Seuls les auto-entrepreneurs avec l'abonnement actif sont visibles
       const { data: packs } = await supabase
         .from('user_purchases')
         .select('user_id')
         .eq('offer_id', 'pack_visibilite_auto')
         .eq('status', 'active');
 
-      const featuredIds = new Set((packs ?? []).map((p: { user_id: string }) => p.user_id));
+      if (!packs || packs.length === 0) { setLoading(false); return; }
 
-      const enriched: AutoProfile[] = autos.map(a => ({
-        ...a,
-        featured: featuredIds.has(a.id),
-      }));
+      const subscribedIds = packs.map((p: { user_id: string }) => p.user_id);
 
-      // Les profils mis en avant en premier, puis par XP
-      enriched.sort((a, b) => {
-        if (a.featured && !b.featured) return -1;
-        if (!a.featured && b.featured) return 1;
-        return (b.xp_total ?? 0) - (a.xp_total ?? 0);
-      });
+      const { data: autos } = await supabase
+        .from('profiles')
+        .select('id, nom, ville, avatar_lettre, siret, metier, bio, note_moyenne, nb_missions, xp_total, niveau')
+        .eq('statut', 'autoentrepreneur')
+        .in('id', subscribedIds)
+        .order('xp_total', { ascending: false });
+
+      if (!autos) { setLoading(false); return; }
+
+      const enriched: AutoProfile[] = autos.map(a => ({ ...a, featured: true }));
 
       setProfiles(enriched);
       setLoading(false);
@@ -76,9 +68,6 @@ export default function AutoEntrepreneursPage() {
     const matchMetier = filtre === 'Tous' || p.metier === filtre;
     return matchSearch && matchMetier;
   });
-
-  const featured = filtered.filter(p => p.featured);
-  const others   = filtered.filter(p => !p.featured);
 
   return (
     <>
@@ -133,40 +122,9 @@ export default function AutoEntrepreneursPage() {
             <p>Essaie de modifier ta recherche ou le filtre métier.</p>
           </div>
         ) : (
-          <>
-            {/* ─── PROFILS MIS EN AVANT ─────────── */}
-            {featured.length > 0 && (
-              <div style={{ marginBottom: 48 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                  <span style={{ fontSize: 22 }}>⭐</span>
-                  <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy)' }}>Profils mis en avant</h2>
-                  <span style={{
-                    background: 'var(--teal-light)', color: 'var(--teal-dark)',
-                    padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700,
-                  }}>
-                    Contact direct activé
-                  </span>
-                </div>
-                <div style={gridStyle}>
-                  {featured.map(p => <ProfileCard key={p.id} profile={p} />)}
-                </div>
-              </div>
-            )}
-
-            {/* ─── TOUS LES PROFILS ─────────────── */}
-            {others.length > 0 && (
-              <div>
-                {featured.length > 0 && (
-                  <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy)', marginBottom: 20 }}>
-                    Autres auto-entrepreneurs
-                  </h2>
-                )}
-                <div style={gridStyle}>
-                  {others.map(p => <ProfileCard key={p.id} profile={p} />)}
-                </div>
-              </div>
-            )}
-          </>
+          <div style={gridStyle}>
+            {filtered.map(p => <ProfileCard key={p.id} profile={p} />)}
+          </div>
         )}
 
         {/* CTA pour les auto-entrepreneurs */}
