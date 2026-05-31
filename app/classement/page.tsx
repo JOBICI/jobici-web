@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/AuthContext';
@@ -39,7 +38,6 @@ const TIME_TABS: { id: TimeTab; label: string; emoji: string }[] = [
 
 export default function ClassementPage() {
   const { user, userProfile } = useAuth();
-  const router = useRouter();
 
   const [category, setCategory] = useState<CategoryTab>('travailleurs');
   const [timeTab, setTimeTab]   = useState<TimeTab>('global');
@@ -265,11 +263,17 @@ export default function ClassementPage() {
 
                   {/* Nom + Ville */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <Link href={getProfileLink(u)} style={{ textDecoration: 'none' }}>
+                    {user ? (
+                      <Link href={getProfileLink(u)} style={{ textDecoration: 'none' }}>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {displayName(u)} {isMe && <span style={{ color: 'var(--teal-dark)', fontSize: 11 }}>(vous)</span>}
+                        </p>
+                      </Link>
+                    ) : (
                       <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {displayName(u)} {isMe && <span style={{ color: 'var(--teal-dark)', fontSize: 11 }}>(vous)</span>}
+                        {displayName(u)}
                       </p>
-                    </Link>
+                    )}
                     {u.ville && <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>📍 {u.ville}</p>}
                   </div>
 
