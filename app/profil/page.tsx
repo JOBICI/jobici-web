@@ -217,7 +217,7 @@ export default function ProfilPage() {
                   color: activeTab === tab ? 'white' : 'var(--text-mid)',
                   fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
                 }}>
-                {tab === 'profil' ? '👤 Mon profil' : '📋 Mes missions'}
+                {tab === 'profil' ? '👤 Mon profil' : '📋 Mes publications'}
               </button>
             ))}
           </div>

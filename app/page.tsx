@@ -20,10 +20,13 @@ const FILTERS = [
   { id: 'vente',        label: '🛍️ Vente' },
 ];
 
+type AEProfile = { id: string; nom: string; ville: string | null; metier: string | null; avatar_lettre: string | null; note_moyenne: number | null };
+
 export default function Home() {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [loading, setLoading]   = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [autoEntrepreneurs, setAutoEntrepreneurs] = useState<AEProfile[]>([]);
 
   useEffect(() => {
     async function loadMissions() {
@@ -36,7 +39,29 @@ export default function Home() {
       if (data) setMissions(data);
       setLoading(false);
     }
+
+    async function loadAE() {
+      const { data: packs } = await supabase
+        .from('user_purchases')
+        .select('user_id')
+        .eq('offer_id', 'pack_visibilite_auto')
+        .eq('status', 'active');
+
+      if (!packs || packs.length === 0) return;
+      const ids = packs.map((p: { user_id: string }) => p.user_id);
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, nom, ville, metier, avatar_lettre, note_moyenne')
+        .eq('statut', 'autoentrepreneur')
+        .in('id', ids)
+        .limit(6);
+
+      if (data) setAutoEntrepreneurs(data as AEProfile[]);
+    }
+
     loadMissions();
+    loadAE();
   }, []);
 
   const filtered = missions.filter(m => {
@@ -113,6 +138,43 @@ export default function Home() {
           <Link href="/missions" className="btn-primary">Voir toutes les missions →</Link>
         </div>
       </main>
+
+      {/* AUTO-ENTREPRENEURS */}
+      {autoEntrepreneurs.length > 0 && (
+        <section className="missions-section" style={{ background: 'var(--cream)' }}>
+          <div className="section-head">
+            <h2>🧾 Auto-entrepreneurs disponibles</h2>
+            <Link href="/auto-entrepreneurs" className="see-all">Voir tous →</Link>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
+            {autoEntrepreneurs.map(ae => {
+              const initial = (ae.nom || '?').charAt(0).toUpperCase();
+              return (
+                <Link key={ae.id} href={`/auto-entrepreneurs/${ae.id}`} style={{ textDecoration: 'none' }}>
+                  <div style={{
+                    background: 'white', borderRadius: 16, padding: 20,
+                    border: '1px solid var(--border)', display: 'flex', gap: 14, alignItems: 'center',
+                    transition: 'all 0.2s', cursor: 'pointer',
+                  }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 20px rgba(13,31,45,0.1)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = ''; }}
+                  >
+                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--teal)', color: 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 900, flexShrink: 0 }}>
+                      {ae.avatar_lettre || initial}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ae.nom}</p>
+                      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: ae.metier ? 4 : 0 }}>📍 {ae.ville || '—'}</p>
+                      {ae.metier && <span style={{ background: 'var(--teal-light)', color: 'var(--teal-dark)', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{ae.metier}</span>}
+                    </div>
+                    {ae.note_moyenne && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', flexShrink: 0 }}>⭐ {ae.note_moyenne.toFixed(1)}</span>}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* FEATURES */}
       <section className="features-section">
