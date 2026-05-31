@@ -23,21 +23,33 @@ export default function MissionCard({ mission }: { mission: Mission }) {
   const typeBadge = mission.type === 'CDI' ? 'cdi' : mission.type === 'CDD' ? 'cdd' : 'pro';
 
   return (
-    <Link href="/contact" className="mission-card">
-      <div className="mission-img" style={{ background: bg }}>
-        <span className="mission-emoji">{mission.emoji || '🎯'}</span>
-        {mission.est_urgent && (
-          <span className="badge-urgent">⚡ Urgent</span>
-        )}
-      </div>
-      <div className="mission-body">
-        <h3>{mission.titre}</h3>
-        <p className="mission-meta">📍 {mission.ville} · ⏱ {mission.duree || '—'}</p>
-        <div className="mission-bottom">
-          <span className="mission-price">{mission.tarif} €</span>
-          <span className={`mission-type ${typeBadge}`}>{mission.type}</span>
+    <div className="mission-card" style={{ display: 'flex', flexDirection: 'column' }}>
+      <Link href={`/missions/${mission.id}`} style={{ textDecoration: 'none', flex: 1 }}>
+        <div className="mission-img" style={{ background: bg }}>
+          <span className="mission-emoji">{mission.emoji || '🎯'}</span>
+          {mission.est_urgent && (
+            <span className="badge-urgent">⚡ Urgent</span>
+          )}
         </div>
+        <div className="mission-body">
+          <h3>{mission.titre}</h3>
+          <p className="mission-meta">📍 {mission.ville} · ⏱ {mission.duree || '—'}</p>
+          <div className="mission-bottom">
+            <span className="mission-price">{mission.tarif} €</span>
+            <span className={`mission-type ${typeBadge}`}>{mission.type}</span>
+          </div>
+        </div>
+      </Link>
+      <div style={{ padding: '0 12px 12px' }}>
+        <Link href={`/missions/${mission.id}`} style={{
+          display: 'block', textAlign: 'center',
+          background: 'var(--teal)', color: 'var(--navy)',
+          padding: '10px', borderRadius: 10,
+          fontWeight: 800, fontSize: 13, textDecoration: 'none',
+        }}>
+          Postuler →
+        </Link>
       </div>
-    </Link>
+    </div>
   );
 }
