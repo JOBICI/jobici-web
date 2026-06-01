@@ -22,18 +22,17 @@ export default function MentionsLegalesPage() {
         <article style={articleStyle}>
 
           <p style={updateStyle}>
-            📅 Dernière mise à jour : 18 mai 2026
+            📅 Dernière mise à jour : 1er juin 2026
           </p>
 
           <h2 style={h2Style}>1. Éditeur du site</h2>
           <div style={infoBox}>
             <p><strong>Raison sociale :</strong> JOBICI SASU</p>
             <p><strong>Capital social :</strong> 1 000 €</p>
-            <p><strong>Numéro SIRET :</strong> [En cours d'immatriculation]</p>
-            <p><strong>Numéro RCS :</strong> [En cours d'immatriculation]</p>
-            <p><strong>Numéro de TVA intracommunautaire :</strong> [En cours d'attribution]</p>
+            <p><strong>Numéro SIRET :</strong> 105 264 220 00010</p>
+            <p><strong>Numéro SIREN :</strong> 105 264 220</p>
+            <p><strong>Numéro TVA intracommunautaire :</strong> FR54105264220</p>
             <p><strong>Siège social :</strong> 1350 Route de Tournon, 07610 Lemps</p>
-            <p><strong>Code APE :</strong> [À déterminer après immatriculation]</p>
             <p><strong>Téléphone :</strong> 06 79 46 81 16</p>
             <p><strong>Email :</strong> <a href="mailto:contact@job-ici.com" style={linkStyle}>contact@job-ici.com</a></p>
             <p><strong>Site web :</strong> <a href="https://job-ici.com" style={linkStyle}>https://job-ici.com</a></p>
