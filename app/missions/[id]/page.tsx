@@ -110,6 +110,13 @@ export default function MissionDetailPage() {
       return;
     }
 
+    // Vérifier les documents
+    if (!userProfile?.documents_complets) {
+      alert("⚠️ Vous devez déposer vos documents dans votre profil avant de postuler (carte d'identité et carte vitale).");
+      router.push('/profil');
+      return;
+    }
+
     setSubmitting(true);
 
     try {

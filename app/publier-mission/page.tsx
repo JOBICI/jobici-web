@@ -87,6 +87,15 @@ export default function PublierMissionPage() {
     e.preventDefault();
     if (!user) return;
 
+    // Vérifier les documents
+    if (!userProfile?.documents_complets) {
+      const msg = userProfile?.statut === 'employer'
+        ? "⚠️ Vous devez déposer votre Kbis dans votre profil avant de publier une mission."
+        : "⚠️ Vous devez déposer votre carte d'identité dans votre profil avant de publier une mission.";
+      setError(msg);
+      return;
+    }
+
     setLoading(true);
     setError('');
 
