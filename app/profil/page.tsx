@@ -40,6 +40,11 @@ export default function ProfilPage() {
   const [emailContact, setEmailContact] = useState('');
   const [telephone, setTelephone]       = useState('');
 
+  // Profil travailleur
+  const [experiences, setExperiences] = useState('');
+  const [cvUrl, setCvUrl]             = useState<string | null>(null);
+  const [lettreUrl, setLettreUrl]     = useState<string | null>(null);
+
   // Documents
   const [cniUrl, setCniUrl]                         = useState<string | null>(null);
   const [carteVitaleUrl, setCarteVitaleUrl]         = useState<string | null>(null);
@@ -49,6 +54,8 @@ export default function ProfilPage() {
   const [uploadingDoc, setUploadingDoc]             = useState<string | null>(null);
   const [uploadError, setUploadError]               = useState('');
 
+  const cvInputRef           = useRef<HTMLInputElement>(null);
+  const lettreInputRef       = useRef<HTMLInputElement>(null);
   const cniInputRef          = useRef<HTMLInputElement>(null);
   const vitaleInputRef       = useRef<HTMLInputElement>(null);
   const kbisInputRef         = useRef<HTMLInputElement>(null);
@@ -70,6 +77,9 @@ export default function ProfilPage() {
       setKbisUrl(userProfile.kbis_url || null);
       setAutorisationUrl(userProfile.autorisation_parentale_url || null);
       setCniResponsableUrl(userProfile.cni_responsable_url || null);
+      setExperiences(userProfile.experiences || '');
+      setCvUrl(userProfile.cv_url || null);
+      setLettreUrl(userProfile.lettre_motivation_url || null);
     }
   }, [authLoading, user, userProfile, router]);
 
@@ -91,9 +101,13 @@ export default function ProfilPage() {
       telephone: telephone.trim(),
     } : {};
 
+    const workerFields = userProfile?.statut === 'worker' ? {
+      experiences: experiences.trim(),
+    } : {};
+
     const { error } = await supabase
       .from('profiles')
-      .update({ ...base, ...autoFields })
+      .update({ ...base, ...autoFields, ...workerFields })
       .eq('id', user.id);
 
     setSaving(false);
@@ -134,14 +148,16 @@ export default function ProfilPage() {
     loadMissions();
   }
 
-  type DocType = 'cni' | 'vitale' | 'kbis' | 'autorisation' | 'cni_responsable';
+  type DocType = 'cni' | 'vitale' | 'kbis' | 'autorisation' | 'cni_responsable' | 'cv' | 'lettre';
 
   const DOC_CONFIG: Record<DocType, { column: string; fileName: string; setter: (v: string) => void }> = {
-    cni:             { column: 'carte_identite_url',       fileName: 'carte_identite',       setter: setCniUrl },
-    vitale:          { column: 'carte_vitale_url',         fileName: 'carte_vitale',         setter: setCarteVitaleUrl },
-    kbis:            { column: 'kbis_url',                 fileName: 'kbis',                 setter: setKbisUrl },
-    autorisation:    { column: 'autorisation_parentale_url', fileName: 'autorisation_parentale', setter: setAutorisationUrl },
-    cni_responsable: { column: 'cni_responsable_url',      fileName: 'cni_responsable',      setter: setCniResponsableUrl },
+    cni:             { column: 'carte_identite_url',         fileName: 'carte_identite',          setter: setCniUrl },
+    vitale:          { column: 'carte_vitale_url',           fileName: 'carte_vitale',            setter: setCarteVitaleUrl },
+    kbis:            { column: 'kbis_url',                   fileName: 'kbis',                    setter: setKbisUrl },
+    autorisation:    { column: 'autorisation_parentale_url', fileName: 'autorisation_parentale',  setter: setAutorisationUrl },
+    cni_responsable: { column: 'cni_responsable_url',        fileName: 'cni_responsable',         setter: setCniResponsableUrl },
+    cv:              { column: 'cv_url',                     fileName: 'cv',                      setter: setCvUrl },
+    lettre:          { column: 'lettre_motivation_url',      fileName: 'lettre_motivation',       setter: setLettreUrl },
   };
 
   async function uploadDocument(file: File, type: DocType) {
@@ -469,6 +485,70 @@ export default function ProfilPage() {
               <Link href="/offres" style={{ background: 'var(--teal)', color: 'var(--navy)', padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 800, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
                 9,99 €/mois →
               </Link>
+            </div>
+          </div>
+        )}
+
+        {/* PROFIL TRAVAILLEUR */}
+        {isWorker && (
+          <div style={{ ...cardStyle, border: '1.5px solid var(--teal-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div>
+                <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>💼 Mon profil travailleur</h2>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Visible par les pros quand vous postulez.</p>
+              </div>
+              {!editing && <button onClick={() => setEditing(true)} style={btnSecondaryStyle}>Modifier</button>}
+            </div>
+
+            <label style={labelStyle}>Expériences & compétences</label>
+            {editing ? (
+              <textarea
+                value={experiences}
+                onChange={e => setExperiences(e.target.value)}
+                placeholder="Décrivez vos expériences, compétences et disponibilités…"
+                rows={5}
+                style={{ width: '100%', padding: '12px 14px', border: '1.5px solid var(--border)', borderRadius: 10, fontSize: 14, fontFamily: 'inherit', resize: 'vertical', background: 'var(--cream)', outline: 'none', boxSizing: 'border-box' as const }}
+              />
+            ) : (
+              <p style={{ fontSize: 14, color: experiences ? 'var(--text-dark)' : 'var(--text-muted)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                {experiences || 'Aucune expérience renseignée.'}
+              </p>
+            )}
+
+            <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--cream)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 22 }}>📄</span>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>CV</p>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{cvUrl ? '✅ Déposé' : 'Non déposé'}</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {cvUrl && <button onClick={() => voirDocument(cvUrl)} style={{ ...btnSecondaryStyle, fontSize: 12, padding: '6px 12px' }}>Voir</button>}
+                  <button onClick={() => cvInputRef.current?.click()} style={{ ...btnPrimaryStyle, fontSize: 12, padding: '6px 12px' }}>
+                    {uploadingDoc === 'cv' ? '⏳' : cvUrl ? 'Remplacer' : 'Déposer'}
+                  </button>
+                  <input ref={cvInputRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" style={{ display: 'none' }} onChange={e => handleFileSelect(e, 'cv')} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--cream)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 22 }}>✉️</span>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Lettre de motivation</p>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{lettreUrl ? '✅ Déposée' : 'Non déposée'}</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {lettreUrl && <button onClick={() => voirDocument(lettreUrl)} style={{ ...btnSecondaryStyle, fontSize: 12, padding: '6px 12px' }}>Voir</button>}
+                  <button onClick={() => lettreInputRef.current?.click()} style={{ ...btnPrimaryStyle, fontSize: 12, padding: '6px 12px' }}>
+                    {uploadingDoc === 'lettre' ? '⏳' : lettreUrl ? 'Remplacer' : 'Déposer'}
+                  </button>
+                  <input ref={lettreInputRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" style={{ display: 'none' }} onChange={e => handleFileSelect(e, 'lettre')} />
+                </div>
+              </div>
             </div>
           </div>
         )}

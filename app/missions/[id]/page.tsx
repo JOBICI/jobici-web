@@ -164,10 +164,11 @@ export default function MissionDetailPage() {
 
       // 3. Envoyer un premier message automatique
       if (conversationId) {
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://job-ici.com';
         await supabase.from('messages').insert({
           conversation_id: conversationId,
           auteur_id: user.id,
-          texte: `Bonjour, je suis intéressé(e) par votre mission "${mission.titre}". Je suis disponible !`,
+          texte: `Bonjour, je suis intéressé(e) par votre mission "${mission.titre}". Je suis disponible !\n\n👤 Consultez mon profil (expériences, CV, lettre de motivation) : ${siteUrl}/profil/${user.id}`,
           type: 'normal',
         });
       }

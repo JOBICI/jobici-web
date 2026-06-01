@@ -21,6 +21,9 @@ type Profile = {
   xp_total: number | null;
   niveau: number | null;
   metier: string | null;
+  experiences: string | null;
+  cv_url: string | null;
+  lettre_motivation_url: string | null;
 };
 
 const STATUT_LABELS: Record<string, string> = {
@@ -47,10 +50,10 @@ export default function PublicProfilePage() {
     async function load() {
       const { data } = await supabase
         .from('profiles')
-        .select('id, nom, prenom, ville, avatar_lettre, statut, bio, note_moyenne, nb_missions, xp_total, niveau, metier')
+        .select('id, nom, prenom, ville, avatar_lettre, statut, bio, note_moyenne, nb_missions, xp_total, niveau, metier, experiences, cv_url, lettre_motivation_url')
         .eq('id', id)
         .single();
-      setProfile(data ?? null);
+      setProfile(data as Profile ?? null);
       setLoading(false);
     }
     load();
@@ -172,6 +175,46 @@ export default function PublicProfilePage() {
           </div>
         )}
 
+        {/* Expériences (travailleurs) */}
+        {profile.statut === 'worker' && profile.experiences && (
+          <div style={{ background: 'white', borderRadius: 16, padding: 24, border: '1px solid var(--border)', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', marginBottom: 12 }}>💼 Expériences & compétences</h2>
+            <p style={{ fontSize: 15, color: 'var(--text-dark)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{profile.experiences}</p>
+          </div>
+        )}
+
+        {/* Classement XP (travailleurs) */}
+        {profile.statut === 'worker' && profile.xp_total !== null && (
+          <div style={{ background: 'linear-gradient(135deg, var(--teal-light), var(--cream))', borderRadius: 16, padding: 20, border: '1px solid var(--teal-border)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span style={{ fontSize: 36 }}>🏆</span>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>Classement Jobici</p>
+              <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--text-mid)' }}>
+                <span>⚡ <strong style={{ color: 'var(--teal-dark)' }}>{profile.xp_total}</strong> XP</span>
+                <span>🎖️ <strong style={{ color: 'var(--teal-dark)' }}>{niveauLabel}</strong></span>
+                {profile.nb_missions !== null && profile.nb_missions > 0 && (
+                  <span>✅ <strong style={{ color: 'var(--teal-dark)' }}>{profile.nb_missions}</strong> mission{profile.nb_missions > 1 ? 's' : ''}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CV et lettre de motivation — visibles uniquement pour les pros/particuliers connectés */}
+        {user && profile.statut === 'worker' && (profile.cv_url || profile.lettre_motivation_url) && (
+          <div style={{ background: 'white', borderRadius: 16, padding: 24, border: '1px solid var(--border)', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', marginBottom: 16 }}>📎 Documents joints</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {profile.cv_url && (
+                <DocLink bucket="Document" path={profile.cv_url} label="📄 Voir le CV" />
+              )}
+              {profile.lettre_motivation_url && (
+                <DocLink bucket="Document" path={profile.lettre_motivation_url} label="✉️ Voir la lettre de motivation" />
+              )}
+            </div>
+          </div>
+        )}
+
         {canPropose && (
           <div style={{ background: 'white', borderRadius: 16, padding: 24, border: '2px solid var(--teal)' }}>
             <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>
@@ -260,5 +303,24 @@ export default function PublicProfilePage() {
 
       <Footer />
     </>
+  );
+}
+
+function DocLink({ bucket, path, label }: { bucket: string; path: string; label: string }) {
+  async function open() {
+    const { data } = await (await import('@/lib/supabase')).supabase
+      .storage.from(bucket).createSignedUrl(path, 60);
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+  }
+  return (
+    <button onClick={open} style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '12px 16px', background: 'var(--cream)',
+      border: '1px solid var(--border)', borderRadius: 10,
+      fontSize: 14, fontWeight: 700, color: 'var(--navy)',
+      cursor: 'pointer', fontFamily: 'inherit', width: '100%', textAlign: 'left',
+    }}>
+      {label}
+    </button>
   );
 }
