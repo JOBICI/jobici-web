@@ -20,7 +20,7 @@ type Tab = 'particulier' | 'pro' | 'travailleur' | 'auto-entrepreneur' | 'code-p
 /* ─── Onglets ────────────────────────────────────────── */
 const TABS: { id: Tab; label: string }[] = [
   { id: 'particulier',       label: '🏠 Particulier' },
-  { id: 'pro',               label: '💼 Professionnel' },
+  { id: 'pro',               label: '💼 Professionnelle' },
   { id: 'travailleur',       label: '👷 Travailleur' },
   { id: 'auto-entrepreneur', label: '🧾 Auto-entrepreneur' },
   { id: 'code-promo',        label: '🎁 Code promo' },
@@ -388,14 +388,14 @@ export default function OffresPage() {
       {tab === 'pro' && (
         <main style={mainStyle}>
           <div style={headerStyle}>
-            <h2 style={h2Style}>Offres Professionnels 💼</h2>
+            <h2 style={h2Style}>Offres Professionnelles 💼</h2>
             <p style={subtitleStyle}>Recrutez en urgence, gérez vos renforts sans contrainte.</p>
           </div>
           <div style={{ ...gridStyle, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', maxWidth: 720, margin: '0 auto' }}>
             <OfferCard
               emoji="⚡"
               badge="Engagement 3 mois"
-              title="Pack Mensuel Pro"
+              title="Pack Mensuel Professionnel"
               price="9,99 €"
               priceDetail="/ mois · engagement 3 mois"
               bullets={[
@@ -561,7 +561,7 @@ export default function OffresPage() {
                 </p>
                 {([
                   { id: 'pack_mensuel_particulier',    label: 'Pack Mensuel Particulier — 9,99 €/mois' },
-                  { id: 'pack_mensuel_pro',            label: 'Pack Mensuel Pro — 9,99 €/mois' },
+                  { id: 'pack_mensuel_pro',            label: 'Pack Mensuel Professionnel — 9,99 €/mois' },
                   { id: 'pack_visibilite_travailleur', label: 'Pack Visibilité Travailleur — 9,99 €/mois' },
                   { id: 'pack_visibilite_auto',        label: 'Pack Visibilité Auto-Entrepreneur — 9,99 €/mois' },
                   { id: 'boost_annonce',               label: 'Remonter mon annonce — 2 €' },

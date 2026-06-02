@@ -24,6 +24,7 @@ type Mission = {
   statut: string;
   employeur_id: string;
   created_at: string;
+  age_minimum: number | null;
 };
 
 type Employeur = {
@@ -107,6 +108,14 @@ export default function MissionDetailPage() {
     // Empêcher de postuler à sa propre mission
     if (user.id === mission.employeur_id) {
       alert("Vous ne pouvez pas postuler à votre propre mission.");
+      return;
+    }
+
+    // Vérifier l'âge minimum
+    const ageMinimum = mission.age_minimum ?? 14;
+    const userAge = userProfile?.age ? parseInt(userProfile.age) : null;
+    if (userAge !== null && userAge < ageMinimum) {
+      alert(`⚠️ Cette mission requiert d'avoir au moins ${ageMinimum} ans. Vous ne pouvez pas postuler.`);
       return;
     }
 
@@ -287,7 +296,7 @@ export default function MissionDetailPage() {
                 {employeur?.nom || 'Employeur'}
               </p>
               <p style={{ fontSize: 13, color: 'var(--text-mid)' }}>
-                {isPro ? '🏢 Professionnel' : '🏠 Particulier'}
+                {isPro ? '🏢 Professionnelle' : '🏠 Particulier'}
                 {employeur?.ville && ` · 📍 ${employeur.ville}`}
               </p>
             </div>

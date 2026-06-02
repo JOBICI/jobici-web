@@ -207,21 +207,37 @@ export default function Home() {
         </div>
       </section>
 
-      {/* DOUBLE CTA */}
+      {/* QUI SOMMES-NOUS POUR */}
       <section className="double-cta">
-        <div className="cta-grid">
-          <Link href="/pros" className="cta-card pro">
-            <span className="cta-emoji-big">💼</span>
-            <h3>Vous êtes Pro ?</h3>
-            <p>Trouvez des travailleurs qualifiés en quelques minutes pour vos missions ponctuelles ou récurrentes.</p>
-            <span className="cta-arrow">Découvrir l'offre Pro →</span>
-          </Link>
-          <Link href="/missions" className="cta-card worker">
-            <span className="cta-emoji-big">👥</span>
-            <h3>Vous cherchez du travail ?</h3>
-            <p>Accédez à des missions près de chez vous, avec 0% de commission et un paiement sécurisé.</p>
-            <span className="cta-arrow">Voir les missions →</span>
-          </Link>
+        <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 20px' }}>
+          <h2 style={{ textAlign: 'center', fontSize: 26, fontWeight: 900, color: 'var(--navy)', marginBottom: 8 }}>Pour qui est Jobici ?</h2>
+          <p style={{ textAlign: 'center', color: 'var(--text-mid)', fontSize: 15, marginBottom: 32 }}>Une plateforme pensée pour tout le monde.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+            <Link href="/inscription?type=particulier" className="cta-card" style={{ textDecoration: 'none' }}>
+              <span className="cta-emoji-big">🏠</span>
+              <h3>Particulier</h3>
+              <p>Publiez une mission et trouvez quelqu'un de confiance près de chez vous.</p>
+              <span className="cta-arrow">Je publie une mission →</span>
+            </Link>
+            <Link href="/inscription?type=worker" className="cta-card worker" style={{ textDecoration: 'none' }}>
+              <span className="cta-emoji-big">🎓</span>
+              <h3>Étudiant</h3>
+              <p>Trouvez des missions flexibles autour de vous, compatibles avec vos études.</p>
+              <span className="cta-arrow">Je cherche un job →</span>
+            </Link>
+            <Link href="/inscription?type=employer" className="cta-card pro" style={{ textDecoration: 'none' }}>
+              <span className="cta-emoji-big">💼</span>
+              <h3>Professionnelle</h3>
+              <p>Recrutez des renforts qualifiés rapidement pour vos missions ponctuelles.</p>
+              <span className="cta-arrow">Je recrute →</span>
+            </Link>
+            <Link href="/inscription?type=autoentrepreneur" className="cta-card" style={{ textDecoration: 'none', borderColor: 'var(--teal)' }}>
+              <span className="cta-emoji-big">🧾</span>
+              <h3>Auto-entrepreneur</h3>
+              <p>Mettez votre profil en avant et soyez contacté directement par vos clients.</p>
+              <span className="cta-arrow">Je propose mes services →</span>
+            </Link>
+          </div>
         </div>
       </section>
 

@@ -53,6 +53,7 @@ export default function MessagesPage() {
   const [newMessage, setNewMessage] = useState('');
   const [loadingConv, setLoadingConv] = useState(true);
   const [sending, setSending] = useState(false);
+  const [deletingMsgId, setDeletingMsgId] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -133,6 +134,14 @@ export default function MessagesPage() {
     return () => { channel.unsubscribe(); };
   }, [activeConv]);
 
+  async function deleteMessage(msgId: string) {
+    if (!confirm('Supprimer ce message ?')) return;
+    setDeletingMsgId(msgId);
+    await supabase.from('messages').delete().eq('id', msgId);
+    setMessages(prev => prev.filter(m => m.id !== msgId));
+    setDeletingMsgId(null);
+  }
+
   async function sendMessage() {
     if (!newMessage.trim() || !user || sending || !activeConv) return;
     setSending(true);
@@ -204,14 +213,27 @@ export default function MessagesPage() {
               const isMine = m.auteur_id === user.id;
               return (
                 <div key={m.id} style={{ alignSelf: isMine ? 'flex-end' : 'flex-start', maxWidth: '75%' }}>
-                  <div style={{
-                    background: isMine ? 'var(--teal)' : 'white',
-                    color: isMine ? 'var(--navy)' : 'var(--text-dark)',
-                    padding: '10px 14px', borderRadius: 16,
-                    border: isMine ? 'none' : '1px solid var(--border)',
-                    fontSize: 14, lineHeight: 1.4,
-                  }}>
-                    {m.texte}
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', flexDirection: isMine ? 'row-reverse' : 'row' }}>
+                    <div style={{
+                      background: isMine ? 'var(--teal)' : 'white',
+                      color: isMine ? 'var(--navy)' : 'var(--text-dark)',
+                      padding: '10px 14px', borderRadius: 16,
+                      border: isMine ? 'none' : '1px solid var(--border)',
+                      fontSize: 14, lineHeight: 1.4,
+                      whiteSpace: 'pre-wrap',
+                    }}>
+                      {m.texte}
+                    </div>
+                    {isMine && (
+                      <button
+                        onClick={() => deleteMessage(m.id)}
+                        disabled={deletingMsgId === m.id}
+                        title="Supprimer"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text-muted)', padding: 2, opacity: deletingMsgId === m.id ? 0.3 : 0.6, flexShrink: 0 }}
+                      >
+                        🗑️
+                      </button>
+                    )}
                   </div>
                   <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3, textAlign: isMine ? 'right' : 'left' }}>
                     {formatTime(m.created_at)}

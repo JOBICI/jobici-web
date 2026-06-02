@@ -223,7 +223,7 @@ function InscriptionForm() {
           { v: 'worker',           e: '🔍', t: 'Chercher un job',  d: 'Étudiant, salarié...' },
           { v: 'particulier',      e: '🏠', t: 'Particulier',       d: 'Proposer une mission' },
           { v: 'autoentrepreneur', e: '💼', t: 'Auto-entrepreneur', d: 'Proposer mes services' },
-          { v: 'employer',         e: '🏢', t: 'Professionnel',     d: 'Recruter pour mon entreprise' },
+          { v: 'employer',         e: '🏢', t: 'Professionnelle',     d: 'Recruter pour mon entreprise' },
         ].map(opt => (
           <button
             key={opt.v}
@@ -277,10 +277,32 @@ function InscriptionForm() {
         {estMineur && (isWorker || isParticulier || isAutoEnt) && (
           <>
             <div style={alertBox}>
-              <p style={{ color: '#92400E', fontSize: 13, lineHeight: 1.6 }}>
+              <p style={{ color: '#92400E', fontSize: 13, lineHeight: 1.6, marginBottom: 10 }}>
                 <strong>ℹ️ Vous êtes mineur(e) ({ageNum} ans).</strong><br/>
                 Les informations de votre parent ou tuteur légal sont nécessaires pour valider votre compte.
               </p>
+              {ageNum < 16 ? (
+                <div style={{ background: 'rgba(254,243,199,0.7)', border: '1px solid #FCD34D', borderRadius: 8, padding: '10px 14px' }}>
+                  <p style={{ color: '#92400E', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>⚠️ Conditions de travail pour les 14-15 ans :</p>
+                  <ul style={{ color: '#92400E', fontSize: 12, lineHeight: 1.8, paddingLeft: 16, margin: 0 }}>
+                    <li>Uniquement pendant les <strong>vacances scolaires</strong> (au moins 2 semaines de repos consécutives)</li>
+                    <li>Maximum <strong>35h/semaine</strong> et <strong>7h/jour</strong></li>
+                    <li>Interdit de travailler entre <strong>22h et 6h</strong></li>
+                    <li>Missions dangereuses <strong>interdites</strong> (hauteur, produits chimiques, charges lourdes…)</li>
+                    <li>Autorisation parentale <strong>obligatoire</strong></li>
+                  </ul>
+                  <p style={{ color: '#92400E', fontSize: 12, marginTop: 6, fontStyle: 'italic' }}>Ces missions vous seront automatiquement bloquées sur la plateforme.</p>
+                </div>
+              ) : (
+                <div style={{ background: 'rgba(254,243,199,0.7)', border: '1px solid #FCD34D', borderRadius: 8, padding: '10px 14px' }}>
+                  <p style={{ color: '#92400E', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>ℹ️ Conditions de travail pour les 16-17 ans :</p>
+                  <ul style={{ color: '#92400E', fontSize: 12, lineHeight: 1.8, paddingLeft: 16, margin: 0 }}>
+                    <li>Maximum <strong>35h/semaine</strong></li>
+                    <li>Interdit entre <strong>22h et 6h</strong></li>
+                    <li>Certaines missions dangereuses restent <strong>interdites</strong></li>
+                  </ul>
+                </div>
+              )}
             </div>
 
             <Separator label="Informations du parent / tuteur" />

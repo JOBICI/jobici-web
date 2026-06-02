@@ -30,7 +30,7 @@ const STATUT_LABELS: Record<string, string> = {
   worker: '👷 Travailleur',
   particulier: '🏠 Particulier',
   autoentrepreneur: '🧾 Auto-entrepreneur',
-  employer: '💼 Professionnel',
+  employer: '💼 Professionnelle',
 };
 
 export default function PublicProfilePage() {

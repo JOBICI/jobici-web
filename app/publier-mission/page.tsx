@@ -53,6 +53,7 @@ export default function PublierMissionPage() {
   const [tarif, setTarif]         = useState('');
   const [boost, setBoost]         = useState('aucun');
   const [profilRequis, setProfilRequis] = useState('');
+  const [ageMinimum, setAgeMinimum] = useState('14');
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
 
@@ -115,6 +116,7 @@ export default function PublierMissionPage() {
       tarif: parseFloat(tarif),
       est_urgent: boost === 'sos',
       boost: boost,
+      age_minimum: parseInt(ageMinimum) || 14,
       ...(isPro && moisNum > 0 && { duree_mois: moisNum, commission_totale: commissionMontant }),
     };
 
@@ -259,6 +261,13 @@ export default function PublierMissionPage() {
             <input type="text" value={profilRequis}
               onChange={e => setProfilRequis(e.target.value)}
               placeholder="Ex : Expérience en jardinage appréciée" style={inputStyle} />
+
+            <label style={labelStyle}>Âge minimum requis</label>
+            <select value={ageMinimum} onChange={e => setAgeMinimum(e.target.value)} style={inputStyle}>
+              <option value="14">14 ans (tous les travailleurs)</option>
+              <option value="16">16 ans minimum</option>
+              <option value="18">18 ans minimum (majeur obligatoire)</option>
+            </select>
 
             <label style={labelStyle}>Tarif proposé (€) *</label>
             <input type="number" required min="15" step="0.01" value={tarif}
