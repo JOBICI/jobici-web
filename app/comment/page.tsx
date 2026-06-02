@@ -6,10 +6,10 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 const STEPS_EMP = [
-  { n: 1, e: '📱', t: 'Télécharge l\'app',  d: 'Inscription gratuite en 2 minutes. Crée ton compte employeur (Pro ou Particulier).' },
-  { n: 2, e: '📋', t: 'Publie ta mission',  d: 'Décris ce que tu cherches, fixe le tarif et la date. L\'annonce est en ligne immédiatement.' },
-  { n: 3, e: '👤', t: 'Choisis ton candidat', d: 'Les travailleurs intéressés te contactent. Tu vois leurs profils, notes et avis avant de décider.' },
-  { n: 4, e: '💳', t: 'Paie en sécurité',   d: 'Le paiement est bloqué via Stripe à l\'acceptation, puis libéré au travailleur après validation.' },
+  { n: 1, e: '📱', t: 'Inscrivez-vous',       d: 'Inscription gratuite en 2 minutes. Créez votre compte (Professionnelle ou Particulier).' },
+  { n: 2, e: '📋', t: 'Publiez votre mission', d: 'Décrivez ce que vous recherchez, fixez le tarif et la date. L\'annonce est en ligne immédiatement.' },
+  { n: 3, e: '👤', t: 'Choisissez votre candidat', d: 'Les travailleurs intéressés vous contactent. Consultez leurs profils, notes et avis avant de décider.' },
+  { n: 4, e: '💳', t: 'Payez en sécurité',    d: 'Le paiement est bloqué via Stripe à l\'acceptation, puis libéré au travailleur après validation.' },
 ];
 
 const STEPS_WORK = [
@@ -38,7 +38,7 @@ const FAQ = [
   },
   {
     q: "Y a-t-il un engagement ?",
-    a: "Aucun engagement. L'inscription et l'utilisation de l'app sont gratuites. Les commissions ne sont prélevées que lorsque tu réalises ou fais réaliser une mission. Tu peux supprimer ton compte à tout moment."
+    a: "Aucun engagement. L'inscription et l'utilisation de l'app sont gratuites. Les commissions ne sont prélevées que lorsque vous réalisez ou faites réaliser une mission. Vous pouvez supprimer votre compte à tout moment."
   },
   {
     q: "Dans quelles villes Jobici est disponible ?",
@@ -75,7 +75,7 @@ export default function CommentPage() {
       <section className="page-content">
         <div className="container">
           <h2 className="section-title" style={{ marginBottom: 8 }}>Côté Employeur 💼</h2>
-          <p className="section-subtitle">Tu cherches un travailleur pour une mission ponctuelle ou récurrente.</p>
+          <p className="section-subtitle">Vous cherchez un travailleur pour une mission ponctuelle ou récurrente.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24, marginTop: 40 }}>
             {STEPS_EMP.map(s => (
@@ -107,7 +107,7 @@ export default function CommentPage() {
       <section style={{ background: 'white', padding: '80px 0' }}>
         <div className="container">
           <h2 className="section-title">Questions fréquentes</h2>
-          <p className="section-subtitle">On répond à toutes tes questions.</p>
+          <p className="section-subtitle">On répond à toutes vos questions.</p>
 
           <div style={{ maxWidth: 760, margin: '0 auto' }}>
             {FAQ.map((f, i) => (
@@ -140,10 +140,10 @@ export default function CommentPage() {
         <div className="cta-box">
           <span className="cta-emoji">🚀</span>
           <div className="cta-text">
-            <h3>Prêt à te lancer ?</h3>
-            <p>Télécharge l'app Jobici et commence à publier ou postuler à des missions.</p>
+            <h3>Prêt à vous lancer ?</h3>
+            <p>Inscrivez-vous gratuitement et commencez à publier ou postuler à des missions.</p>
           </div>
-          <Link href="/contact" className="btn-primary">Télécharger l'app →</Link>
+          <Link href="/inscription" className="btn-primary">S'inscrire gratuitement →</Link>
         </div>
       </section>
 
