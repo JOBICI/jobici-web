@@ -8,6 +8,75 @@ import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 
+// ── Vacances scolaires 2025-2026 et 2026-2027 (source : service-public.fr) ──
+type VacPeriod = { debut: string; fin: string };
+type VacZone = { A: VacPeriod[]; B: VacPeriod[]; C: VacPeriod[] };
+
+const VACANCES: VacZone = {
+  A: [
+    { debut: '2025-10-18', fin: '2025-11-03' }, // Toussaint
+    { debut: '2025-12-20', fin: '2026-01-05' }, // Noël
+    { debut: '2026-02-07', fin: '2026-02-23' }, // Hiver
+    { debut: '2026-04-04', fin: '2026-04-20' }, // Printemps
+    { debut: '2026-07-04', fin: '2026-09-01' }, // Été
+    { debut: '2026-10-17', fin: '2026-11-02' }, // Toussaint
+    { debut: '2026-12-19', fin: '2027-01-04' }, // Noël
+    { debut: '2027-02-13', fin: '2027-03-01' }, // Hiver
+    { debut: '2027-04-10', fin: '2027-04-26' }, // Printemps
+    { debut: '2027-07-03', fin: '2027-09-01' }, // Été
+  ],
+  B: [
+    { debut: '2025-10-18', fin: '2025-11-03' },
+    { debut: '2025-12-20', fin: '2026-01-05' },
+    { debut: '2026-02-14', fin: '2026-03-02' },
+    { debut: '2026-04-11', fin: '2026-04-27' },
+    { debut: '2026-07-04', fin: '2026-09-01' },
+    { debut: '2026-10-17', fin: '2026-11-02' },
+    { debut: '2026-12-19', fin: '2027-01-04' },
+    { debut: '2027-02-20', fin: '2027-03-08' },
+    { debut: '2027-04-17', fin: '2027-05-03' },
+    { debut: '2027-07-03', fin: '2027-09-01' },
+  ],
+  C: [
+    { debut: '2025-10-18', fin: '2025-11-03' },
+    { debut: '2025-12-20', fin: '2026-01-05' },
+    { debut: '2026-02-21', fin: '2026-03-09' },
+    { debut: '2026-04-18', fin: '2026-05-04' },
+    { debut: '2026-07-04', fin: '2026-09-01' },
+    { debut: '2026-10-17', fin: '2026-11-02' },
+    { debut: '2026-12-19', fin: '2027-01-04' },
+    { debut: '2027-02-06', fin: '2027-02-22' },
+    { debut: '2027-04-03', fin: '2027-04-19' },
+    { debut: '2027-07-03', fin: '2027-09-01' },
+  ],
+};
+
+// Villes → Zone scolaire (non exhaustif, principales villes)
+const ZONE_VILLES: Record<string, keyof VacZone> = {
+  // Zone A
+  lyon: 'A', grenoble: 'A', clermont: 'A', bordeaux: 'A', limoges: 'A',
+  dijon: 'A', besancon: 'A', poitiers: 'A', valence: 'A', annecy: 'A',
+  chambery: 'A', bourg: 'A', lemps: 'A', tournon: 'A', ardeche: 'A',
+  // Zone B
+  marseille: 'B', nice: 'B', nantes: 'B', rennes: 'B', strasbourg: 'B',
+  lille: 'B', amiens: 'B', rouen: 'B', caen: 'B', reims: 'B',
+  // Zone C
+  paris: 'C', toulouse: 'C', montpellier: 'C', versailles: 'C', creteil: 'C',
+};
+
+function getZone(ville: string): keyof VacZone {
+  const v = ville.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  for (const [key, zone] of Object.entries(ZONE_VILLES)) {
+    if (v.includes(key)) return zone;
+  }
+  return 'A'; // Zone A par défaut (Ardèche)
+}
+
+function estEnVacances(date: string, zone: keyof VacZone): boolean {
+  const d = new Date(date);
+  return VACANCES[zone].some(p => d >= new Date(p.debut) && d <= new Date(p.fin));
+}
+
 type Mission = {
   id: string;
   titre: string;
@@ -25,6 +94,10 @@ type Mission = {
   employeur_id: string;
   created_at: string;
   age_minimum: number | null;
+  est_dangereuse: boolean | null;
+  apres_22h: boolean | null;
+  implique_alcool: boolean | null;
+  conduite_engin: boolean | null;
 };
 
 type Employeur = {
@@ -113,10 +186,19 @@ export default function MissionDetailPage() {
 
     // Vérifier l'âge minimum
     const ageMinimum = mission.age_minimum ?? 14;
-    const userAge = userProfile?.age ? parseInt(userProfile.age) : null;
+    const userAge = userProfile?.age ? parseInt(String(userProfile.age)) : null;
     if (userAge !== null && userAge < ageMinimum) {
       alert(`⚠️ Cette mission requiert d'avoir au moins ${ageMinimum} ans. Vous ne pouvez pas postuler.`);
       return;
+    }
+
+    // Pour les 14-15 ans : vérifier que la mission est pendant les vacances scolaires
+    if (userAge !== null && userAge < 16 && mission.date_mission) {
+      const zone = getZone(userProfile?.ville || '');
+      if (!estEnVacances(mission.date_mission, zone)) {
+        alert(`⚠️ Les moins de 16 ans ne peuvent travailler que pendant les vacances scolaires (Zone ${zone}). La date de cette mission ne correspond pas à une période de vacances.`);
+        return;
+      }
     }
 
     // Vérifier les documents
@@ -302,6 +384,20 @@ export default function MissionDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* ═══ CONDITIONS ═══ */}
+        {(mission.est_dangereuse || mission.apres_22h || mission.implique_alcool || mission.conduite_engin || (mission.age_minimum ?? 0) >= 18) && (
+          <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 14, padding: 18, marginTop: 16 }}>
+            <p style={{ fontSize: 13, fontWeight: 800, color: '#92400E', marginBottom: 10 }}>⚠️ Conditions particulières</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {mission.est_dangereuse && <p style={{ fontSize: 13, color: '#92400E' }}>🦺 Mission dangereuse</p>}
+              {mission.apres_22h && <p style={{ fontSize: 13, color: '#92400E' }}>🌙 Travail après 22h ou avant 6h</p>}
+              {mission.implique_alcool && <p style={{ fontSize: 13, color: '#92400E' }}>🍺 Implique de l'alcool</p>}
+              {mission.conduite_engin && <p style={{ fontSize: 13, color: '#92400E' }}>🚜 Conduite d'engin ou véhicule</p>}
+              {(mission.age_minimum ?? 0) >= 18 && <p style={{ fontSize: 13, fontWeight: 700, color: '#991B1B' }}>🔞 Réservée aux majeurs (18 ans minimum)</p>}
+            </div>
+          </div>
+        )}
 
         {/* ═══ INFO PAIEMENT ═══ */}
         <div style={{ background: 'var(--teal-light)', border: '1px solid var(--teal-border)', borderRadius: 14, padding: 18, marginTop: 16 }}>

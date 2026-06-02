@@ -53,7 +53,13 @@ export default function PublierMissionPage() {
   const [tarif, setTarif]         = useState('');
   const [boost, setBoost]         = useState('aucun');
   const [profilRequis, setProfilRequis] = useState('');
-  const [ageMinimum, setAgeMinimum] = useState('14');
+  const [estDangereuse, setEstDangereuse] = useState(false);
+  const [apres22h, setApres22h]           = useState(false);
+  const [impliqueAlcool, setImpliqueAlcool] = useState(false);
+  const [conduiteEngin, setConduiteEngin] = useState(false);
+
+  // Calcul automatique de l'âge minimum
+  const ageMinAuto = (estDangereuse || apres22h || impliqueAlcool || conduiteEngin) ? 18 : 14;
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
 
@@ -116,7 +122,11 @@ export default function PublierMissionPage() {
       tarif: parseFloat(tarif),
       est_urgent: boost === 'sos',
       boost: boost,
-      age_minimum: parseInt(ageMinimum) || 14,
+      age_minimum: ageMinAuto,
+      est_dangereuse: estDangereuse,
+      apres_22h: apres22h,
+      implique_alcool: impliqueAlcool,
+      conduite_engin: conduiteEngin,
       ...(isPro && moisNum > 0 && { duree_mois: moisNum, commission_totale: commissionMontant }),
     };
 
@@ -262,12 +272,45 @@ export default function PublierMissionPage() {
               onChange={e => setProfilRequis(e.target.value)}
               placeholder="Ex : Expérience en jardinage appréciée" style={inputStyle} />
 
-            <label style={labelStyle}>Âge minimum requis</label>
-            <select value={ageMinimum} onChange={e => setAgeMinimum(e.target.value)} style={inputStyle}>
-              <option value="14">14 ans (tous les travailleurs)</option>
-              <option value="16">16 ans minimum</option>
-              <option value="18">18 ans minimum (majeur obligatoire)</option>
-            </select>
+            {/* ═══ CONDITIONS DE LA MISSION ═══ */}
+            <div style={{ marginTop: 8 }}>
+              <label style={labelStyle}>⚠️ Conditions de la mission</label>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                Cochez si applicable. L'âge minimum sera automatiquement fixé à <strong>18 ans</strong> si une case est cochée.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  { state: estDangereuse, setter: setEstDangereuse, label: '🦺 Mission dangereuse', desc: 'Travaux en hauteur, produits chimiques, charges lourdes, machines…' },
+                  { state: apres22h,      setter: setApres22h,      label: '🌙 Travail après 22h ou avant 6h', desc: 'Horaires de nuit, soirées tardives…' },
+                  { state: impliqueAlcool, setter: setImpliqueAlcool, label: '🍺 Implique de l\'alcool', desc: 'Service, vente ou manipulation d\'alcool' },
+                  { state: conduiteEngin, setter: setConduiteEngin, label: '🚜 Conduite d\'engin ou véhicule', desc: 'Voiture, camion, tracteur, engin de chantier…' },
+                ].map(({ state, setter, label, desc }) => (
+                  <label key={label} style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px',
+                    background: state ? '#FEF3C7' : 'var(--cream)',
+                    border: `1.5px solid ${state ? '#FCD34D' : 'var(--border)'}`,
+                    borderRadius: 10, cursor: 'pointer',
+                  }}>
+                    <input
+                      type="checkbox" checked={state}
+                      onChange={e => setter(e.target.checked)}
+                      style={{ marginTop: 2, accentColor: 'var(--teal)', width: 16, height: 16, flexShrink: 0 }}
+                    />
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 2 }}>{label}</p>
+                      <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{desc}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              {ageMinAuto === 18 && (
+                <div style={{ background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: 10, padding: '10px 14px', marginTop: 12 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#991B1B' }}>
+                    🔞 Âge minimum automatiquement fixé à <strong>18 ans</strong> — les mineurs ne pourront pas postuler.
+                  </p>
+                </div>
+              )}
+            </div>
 
             <label style={labelStyle}>Tarif proposé (€) *</label>
             <input type="number" required min="15" step="0.01" value={tarif}
