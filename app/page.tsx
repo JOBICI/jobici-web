@@ -89,7 +89,7 @@ export default function Home() {
       <section className="hero-mini">
         <div className="container">
           <h1>Trouve ta mission <span className="teal-text">près de chez toi</span> 🎯</h1>
-          <p>Particuliers, pros, étudiants, auto-entrepreneurs — trouve ce qu'il te faut en quelques clics.</p>
+          <p>Particuliers, étudiants, professionnelles et auto-entrepreneurs — trouve ce qu'il te faut en quelques clics.</p>
 
           <div className="categories-scroll">
             {FILTERS.map(f => (
