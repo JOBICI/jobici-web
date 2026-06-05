@@ -51,7 +51,7 @@ export default function ConfidentialitePage() {
             <li>Adresse email</li>
             <li>Numéro de téléphone</li>
             <li>Adresse postale, ville</li>
-            <li>Photo de profil (optionnel)</li>
+            <li>Photo de profil (optionnelle)</li>
             <li>Carte d'identité (pour vérification)</li>
             <li>Carte vitale (pour mandat CESU)</li>
           </ul>

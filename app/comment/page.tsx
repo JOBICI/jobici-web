@@ -41,7 +41,7 @@ const FAQ = [
     a: "Aucun engagement. L'inscription et l'utilisation de l'app sont gratuites. Les commissions ne sont prélevées que lorsque vous réalisez ou faites réaliser une mission. Vous pouvez supprimer votre compte à tout moment."
   },
   {
-    q: "Dans quelles villes Jobici est disponible ?",
+    q: "Dans quelles villes Jobici est-il disponible ?",
     a: "Au lancement, Jobici est disponible en Auvergne-Rhône-Alpes (Valence, Romans, Privas, Aubenas, Annonay, Lyon, Grenoble, etc.). Déploiement national prévu courant 2026."
   },
 ];
