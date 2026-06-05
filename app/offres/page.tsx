@@ -20,7 +20,7 @@ type Tab = 'particulier' | 'pro' | 'travailleur' | 'auto-entrepreneur' | 'code-p
 /* ─── Onglets ────────────────────────────────────────── */
 const TABS: { id: Tab; label: string }[] = [
   { id: 'particulier',       label: '🏠 Particulier' },
-  { id: 'pro',               label: '💼 Professionnelle' },
+  { id: 'pro',               label: '💼 Professionnel' },
   { id: 'travailleur',       label: '👷 Travailleur' },
   { id: 'auto-entrepreneur', label: '🧾 Auto-entrepreneur' },
   { id: 'code-promo',        label: '🎁 Code promo' },
@@ -388,7 +388,7 @@ export default function OffresPage() {
       {tab === 'pro' && (
         <main style={mainStyle}>
           <div style={headerStyle}>
-            <h2 style={h2Style}>Offres Professionnelles 💼</h2>
+            <h2 style={h2Style}>Offres Professionnels 💼</h2>
             <p style={subtitleStyle}>Recrutez en urgence, gérez vos renforts sans contrainte.</p>
           </div>
           <div style={{ ...gridStyle, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', maxWidth: 720, margin: '0 auto' }}>

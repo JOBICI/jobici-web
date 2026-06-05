@@ -6,7 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 const STEPS_EMP = [
-  { n: 1, e: '📱', t: 'Inscrivez-vous',       d: 'Inscription gratuite en 2 minutes. Créez votre compte (Professionnelle ou Particulier).' },
+  { n: 1, e: '📱', t: 'Inscrivez-vous',       d: 'Inscription gratuite en 2 minutes. Créez votre compte (Professionnel ou Particulier).' },
   { n: 2, e: '📋', t: 'Publiez votre mission', d: 'Décrivez ce que vous recherchez, fixez le tarif et la date. L\'annonce est en ligne immédiatement.' },
   { n: 3, e: '👤', t: 'Choisissez votre candidat', d: 'Les travailleurs intéressés vous contactent. Consultez leurs profils, notes et avis avant de décider.' },
   { n: 4, e: '💳', t: 'Payez en sécurité',    d: 'Le paiement est bloqué via Stripe à l\'acceptation, puis libéré au travailleur après validation.' },

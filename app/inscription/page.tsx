@@ -223,7 +223,7 @@ function InscriptionForm() {
           { v: 'worker',           e: '🔍', t: 'Chercher un job',  d: 'Étudiant, salarié...' },
           { v: 'particulier',      e: '🏠', t: 'Particulier',       d: 'Proposer une mission' },
           { v: 'autoentrepreneur', e: '💼', t: 'Auto-entrepreneur', d: 'Proposer mes services' },
-          { v: 'employer',         e: '🏢', t: 'Professionnelle',     d: 'Recruter pour mon entreprise' },
+          { v: 'employer',         e: '🏢', t: 'Professionnel',     d: 'Recruter pour mon entreprise' },
         ].map(opt => (
           <button
             key={opt.v}

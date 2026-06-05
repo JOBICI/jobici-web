@@ -19,7 +19,7 @@ export default function ProsPage() {
               📋 Publier une mission
             </Link>
             <Link href="/inscription?type=pro" style={{ padding: '16px 28px', borderRadius: 12, background: 'white', color: 'var(--navy)', border: '1.5px solid var(--border)', fontWeight: 800, fontSize: 14 }}>
-              S'inscrire en tant que Professionnelle
+              S'inscrire en tant que Professionnel
             </Link>
           </div>
         </div>
@@ -64,7 +64,7 @@ export default function ProsPage() {
 
         <div className="content-grid" style={{ marginTop: 80 }}>
           <div className="content-text">
-            <h2>SOS Urgence Professionnelle ⚡</h2>
+            <h2>SOS Urgence Professionnel ⚡</h2>
             <p>Un serveur qui n'arrive pas ? Une vente massive imprévue ? L'abonnement SOS Urgence vous garantit une mise en avant prioritaire.</p>
             <ul>
               <li>Vos annonces apparaissent en premier</li>
@@ -95,7 +95,7 @@ export default function ProsPage() {
             </div>
             <div className="feature-card" style={{ textAlign: 'left', padding: 32 }}>
               <span className="feature-emoji">⚡</span>
-              <h3 style={{ fontSize: 24, marginBottom: 16 }}>SOS Urgence Professionnelle</h3>
+              <h3 style={{ fontSize: 24, marginBottom: 16 }}>SOS Urgence Professionnel</h3>
               <p style={{ fontSize: 36, fontWeight: 900, color: 'var(--teal)', marginBottom: 12 }}>9,99 €/mois</p>
               <p>Abonnement optionnel pour les missions urgentes. Sans engagement, résiliable à tout moment.</p>
             </div>

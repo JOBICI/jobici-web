@@ -249,7 +249,7 @@ export default function ProfilPage() {
                 {isWorker && '🎓 Travailleur'}
                 {userProfile?.statut === 'particulier' && '🏠 Particulier'}
                 {isAuto && '🧾 Auto-entrepreneur'}
-                {userProfile?.statut === 'employer' && '🏢 Professionnelle'}
+                {userProfile?.statut === 'employer' && '🏢 Professionnel'}
               </span>
             </div>
           </div>

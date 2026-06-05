@@ -378,7 +378,7 @@ export default function MissionDetailPage() {
                 {employeur?.nom || 'Employeur'}
               </p>
               <p style={{ fontSize: 13, color: 'var(--text-mid)' }}>
-                {isPro ? '🏢 Professionnelle' : '🏠 Particulier'}
+                {isPro ? '🏢 Professionnel' : '🏠 Particulier'}
                 {employeur?.ville && ` · 📍 ${employeur.ville}`}
               </p>
             </div>

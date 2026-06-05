@@ -89,7 +89,7 @@ export default function Home() {
       <section className="hero-mini">
         <div className="container">
           <h1>Trouve ta mission <span className="teal-text">près de chez toi</span> 🎯</h1>
-          <p>Particuliers, étudiants, professionnelles et auto-entrepreneurs — trouve ce qu'il te faut en quelques clics.</p>
+          <p>Particuliers, étudiants, professionnels et auto-entrepreneurs — trouve ce qu'il te faut en quelques clics.</p>
 
           <div className="categories-scroll">
             {FILTERS.map(f => (
@@ -227,7 +227,7 @@ export default function Home() {
             </Link>
             <Link href="/inscription?type=employer" className="cta-card pro" style={{ textDecoration: 'none' }}>
               <span className="cta-emoji-big">💼</span>
-              <h3>Professionnelle</h3>
+              <h3>Professionnel</h3>
               <p>Recrutez des renforts qualifiés rapidement pour vos missions ponctuelles.</p>
               <span className="cta-arrow">Je recrute →</span>
             </Link>
