@@ -48,7 +48,7 @@ export default function ConnexionPage() {
             Bienvenue 👋
           </h1>
           <p style={{ color: 'var(--text-mid)', fontSize: 14, textAlign: 'center', marginBottom: 28 }}>
-            Connecte-toi à ton compte Jobici
+            Connectez-vous à votre compte Jobici
           </p>
 
           <form onSubmit={handleSubmit}>

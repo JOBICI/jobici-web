@@ -7,7 +7,7 @@ const OFFER_LABELS: Record<string, { emoji: string; name: string; next: string }
   sos_annonce:               { emoji: '⚡', name: 'SOS Annonce',                  next: 'Tous les travailleurs disponibles ont reçu une notification push.' },
   pack_mensuel_particulier:  { emoji: '🎯', name: 'Pack Mensuel Particulier',      next: 'Tu peux maintenant utiliser le SOS Annonce sur toutes tes annonces.' },
   pack_mensuel_pro:          { emoji: '💼', name: 'Pack Mensuel Pro',             next: 'Tu peux maintenant utiliser le SOS Annonce sur toutes tes annonces.' },
-  pack_visibilite_travailleur: { emoji: '⭐', name: 'Pack Visibilité Travailleur', next: 'Ton profil est mis en avant et tu recevras une notif 30 min avant chaque annonce.' },
+  pack_visibilite_travailleur: { emoji: '⭐', name: 'Pack Visibilité Travailleur', next: 'Votre profil est mis en avant et vous recevrez une notification 30 min avant chaque annonce.' },
   pack_visibilite_auto:      { emoji: '🧾', name: 'Pack Visibilité Auto-Entrepreneur', next: 'Ton profil est mis en avant — pros et particuliers peuvent te contacter directement.' },
 };
 

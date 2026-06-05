@@ -557,7 +557,7 @@ export default function OffresPage() {
             {promoStatus === 'valid' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
                 <p style={{ fontSize: 13, color: 'var(--text-mid)', marginBottom: 4 }}>
-                  Choisis maintenant l'offre à laquelle appliquer ton code :
+                  Choisissez maintenant l'offre à laquelle appliquer votre code :
                 </p>
                 {([
                   { id: 'pack_mensuel_particulier',    label: 'Pack Mensuel Particulier — 9,99 €/mois' },

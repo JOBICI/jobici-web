@@ -101,7 +101,7 @@ export default function ContactPage() {
         <div className="container">
           <h2 style={{ fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 900, letterSpacing: '-1px', marginBottom: 14 }}>📱 Télécharge l'app Jobici</h2>
           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 16, maxWidth: 540, margin: '0 auto 32px' }}>
-            Jobici sera bientôt disponible sur App Store et Google Play. Laisse-nous ton email pour être prévenu en avant-première !
+            Jobici sera bientôt disponible sur App Store et Google Play. Laissez-nous votre email pour être prévenu en avant-première !
           </p>
 
           <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>

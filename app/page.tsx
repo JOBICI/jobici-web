@@ -88,8 +88,8 @@ export default function Home() {
       {/* HERO MINI */}
       <section className="hero-mini">
         <div className="container">
-          <h1>Trouve ta mission <span className="teal-text">près de chez toi</span> 🎯</h1>
-          <p>Particuliers, étudiants, professionnels et auto-entrepreneurs — trouve ce qu'il te faut en quelques clics.</p>
+          <h1>Trouvez votre mission <span className="teal-text">près de chez vous</span> 🎯</h1>
+          <p>Particuliers, étudiants, professionnels et auto-entrepreneurs — trouvez ce qu'il vous faut en quelques clics.</p>
 
           <div className="categories-scroll">
             {FILTERS.map(f => (
@@ -196,7 +196,7 @@ export default function Home() {
             <div className="feature-card">
               <span className="feature-emoji">📍</span>
               <h3>Local</h3>
-              <p>Toutes les missions sont près de chez toi, en Auvergne-Rhône-Alpes pour commencer.</p>
+              <p>Toutes les missions sont près de chez vous, en Auvergne-Rhône-Alpes pour commencer.</p>
             </div>
             <div className="feature-card">
               <span className="feature-emoji">💸</span>

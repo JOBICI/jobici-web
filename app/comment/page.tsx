@@ -14,9 +14,9 @@ const STEPS_EMP = [
 
 const STEPS_WORK = [
   { n: 1, e: '📱', t: 'Télécharge l\'app',  d: 'Inscription gratuite. Indique tes compétences et disponibilités.' },
-  { n: 2, e: '🔍', t: 'Parcours les missions', d: 'Filtre par catégorie, ville, tarif. Trouve la mission qui te convient.' },
-  { n: 3, e: '💬', t: 'Postule en 1 clic',  d: 'Envoie ta candidature. L\'employeur reçoit une notification et te contacte si tu l\'intéresses.' },
-  { n: 4, e: '💰', t: 'Travaille et sois payé', d: 'Réalise la mission, valide. Tu reçois ton paiement sous 48h, sans commission.' },
+  { n: 2, e: '🔍', t: 'Parcourez les missions', d: 'Filtrez par catégorie, ville, tarif. Trouvez la mission qui vous convient.' },
+  { n: 3, e: '💬', t: 'Postulez en 1 clic',  d: 'Envoyez votre candidature. L\'employeur reçoit une notification et vous contacte si votre profil l\'intéresse.' },
+  { n: 4, e: '💰', t: 'Travaillez et soyez payé', d: 'Réalisez la mission, validez. Vous recevez votre paiement sous 48h, sans commission.' },
 ];
 
 const FAQ = [
@@ -89,7 +89,7 @@ export default function CommentPage() {
           </div>
 
           <h2 className="section-title" style={{ marginBottom: 8, marginTop: 100 }}>Côté Travailleur 👥</h2>
-          <p className="section-subtitle">Tu cherches une mission, ponctuelle ou récurrente.</p>
+          <p className="section-subtitle">Vous cherchez une mission, ponctuelle ou récurrente.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24, marginTop: 40 }}>
             {STEPS_WORK.map(s => (

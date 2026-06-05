@@ -119,7 +119,7 @@ export default function AutoEntrepreneursPage() {
           <div className="empty-state">
             <span className="big-emoji">🔍</span>
             <h3>Aucun auto-entrepreneur trouvé</h3>
-            <p>Essaie de modifier ta recherche ou le filtre métier.</p>
+            <p>Essayez de modifier votre recherche ou le filtre métier.</p>
           </div>
         ) : (
           <div style={gridStyle}>
