@@ -89,9 +89,6 @@ export default function Home() {
       <section className="hero-mini">
         <div className="container">
           <h1>Trouvez votre mission <span className="teal-text">près de chez vous</span> 🎯</h1>
-          <p>
-            Particuliers, professionnels, auto-entrepreneurs à la recherche d'une personne pour un travail, une mission, une tâche — trouvez ce qu'il vous faut en quelques clics.
-          </p>
 
           <div className="categories-scroll">
             {FILTERS.map(f => (
@@ -132,12 +129,12 @@ export default function Home() {
         )}
 
         <div className="cta-box">
-          <span className="cta-emoji">🎯</span>
+          <span className="cta-emoji">💼</span>
           <div className="cta-text">
-            <h3>Vous cherchez une mission spécifique ?</h3>
-            <p>Consultez toutes les missions disponibles près de chez vous et postulez en quelques clics.</p>
+            <h3>Trouvez vos travailleurs en quelques minutes 💼</h3>
+            <p>Restaurant, boutique, artisan, salon de coiffure… Jobici simplifie le recrutement de personnel pour vos missions ponctuelles ou récurrentes.</p>
           </div>
-          <Link href="/missions" className="btn-primary">Voir toutes les missions →</Link>
+          <Link href="/publier-mission" className="btn-primary">Publier une mission →</Link>
         </div>
       </main>
 
