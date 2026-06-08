@@ -89,11 +89,8 @@ export default function Home() {
       <section className="hero-mini">
         <div className="container">
           <h1>Trouvez votre mission <span className="teal-text">près de chez vous</span> 🎯</h1>
-          <p style={{ marginBottom: 8 }}>
-            👷 Vous êtes à la recherche d'un emploi, d'une mission ou d'un stage — trouvez ce qu'il vous faut en quelques clics.
-          </p>
           <p>
-            🏠 Particuliers, professionnels, auto-entrepreneurs à la recherche d'une personne pour un travail, une mission, une tâche — trouvez ce qu'il vous faut en quelques clics.
+            Particuliers, professionnels, auto-entrepreneurs à la recherche d'une personne pour un travail, une mission, une tâche — trouvez ce qu'il vous faut en quelques clics.
           </p>
 
           <div className="categories-scroll">
