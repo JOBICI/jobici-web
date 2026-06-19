@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
+import CreerProForm from '@/components/CreerProForm';
 
 const ADMIN_EMAIL = 'dylan.2005.redon@gmail.com';
 
@@ -42,6 +43,7 @@ export default function AdminPage() {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [contratModal, setContratModal] = useState<Candidature | null>(null);
   const [contratTexte, setContratTexte] = useState('');
+  const [vue, setVue] = useState<'candidatures' | 'creer-pro'>('candidatures');
 
   function showToast(type: 'success' | 'error', msg: string) {
     setToast({ type, msg });
@@ -162,12 +164,35 @@ export default function AdminPage() {
       <section className="page-hero">
         <div className="container">
           <h1>Admin Jobici 🛠️</h1>
-          <p>Gestion des candidatures et envoi des contrats.</p>
+          <p>Gestion des candidatures, comptes professionnels et contrats.</p>
         </div>
       </section>
 
       <main style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 20px 80px' }}>
 
+        {/* Onglets de vue */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 28, borderBottom: '1px solid var(--border)' }}>
+          {[
+            { id: 'candidatures' as const, label: '📋 Candidatures' },
+            { id: 'creer-pro' as const, label: '🏢 Créer un Professionnel' },
+          ].map(v => (
+            <button key={v.id} onClick={() => setVue(v.id)}
+              style={{
+                padding: '12px 18px', background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: 'inherit', fontWeight: 800, fontSize: 14,
+                color: vue === v.id ? 'var(--teal-dark)' : 'var(--text-mid)',
+                borderBottom: vue === v.id ? '3px solid var(--teal)' : '3px solid transparent',
+              }}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+
+        {vue === 'creer-pro' ? (
+          <CreerProForm onResult={showToast} />
+        ) : (
+        <>
         {/* Filtres */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 28, flexWrap: 'wrap' }}>
           {[
@@ -286,6 +311,8 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
+        )}
+        </>
         )}
       </main>
 

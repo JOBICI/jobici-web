@@ -41,9 +41,17 @@ export default function ReinitialiserMotDePassePage() {
     e.preventDefault();
     setError('');
 
-    // Validations
-    if (password.length < 6) {
-      setError("Le mot de passe doit contenir au moins 6 caractères.");
+    // Validations (règles de robustesse : 8 car. min, 1 majuscule, 1 chiffre)
+    if (password.length < 8) {
+      setError("Le mot de passe doit contenir au moins 8 caractères.");
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      setError("Le mot de passe doit contenir au moins une majuscule.");
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      setError("Le mot de passe doit contenir au moins un chiffre.");
       return;
     }
     if (password !== passwordConfirm) {
@@ -53,17 +61,27 @@ export default function ReinitialiserMotDePassePage() {
 
     setLoading(true);
 
-    const { error: updateError } = await supabase.auth.updateUser({
+    const { data: updated, error: updateError } = await supabase.auth.updateUser({
       password: password,
     });
 
-    setLoading(false);
-
     if (updateError) {
+      setLoading(false);
       setError(updateError.message);
       return;
     }
 
+    // Si c'est un compte professionnel invité par l'admin, on l'active.
+    // (sans effet pour les autres comptes : aucune ligne professionals → no-op)
+    if (updated?.user?.id) {
+      await supabase
+        .from('professionals')
+        .update({ status: 'active' })
+        .eq('id', updated.user.id)
+        .eq('status', 'invited');
+    }
+
+    setLoading(false);
     setSuccess(true);
 
     // Rediriger vers la connexion après 3 secondes
@@ -130,7 +148,7 @@ export default function ReinitialiserMotDePassePage() {
                   required
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="Minimum 6 caractères"
+                  placeholder="8 caractères, 1 majuscule, 1 chiffre"
                   style={inputStyle}
                   autoComplete="new-password"
                 />
