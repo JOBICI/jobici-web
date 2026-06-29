@@ -2,8 +2,9 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export const metadata = {
-  title: "Mentions légales — Jobici",
+  title: "Mentions légales",
   description: "Mentions légales et informations légales de Jobici.",
+  alternates: { canonical: "/mentions-legales" },
 };
 
 export default function MentionsLegalesPage() {

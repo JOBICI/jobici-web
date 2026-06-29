@@ -15,12 +15,14 @@ export default function Footer() {
           <div>
             <h5>Plateforme</h5>
             <ul>
-              <li><Link href="/missions">Missions</Link></li>
-              <li><Link href="/auto-entrepreneurs">Auto-entrepreneurs</Link></li>
+              <li><Link href="/missions">Missions près de chez vous</Link></li>
+              <li><Link href="/auto-entrepreneurs">Auto-entrepreneurs en Ardèche</Link></li>
+              <li><Link href="/publier-mission">Publier une mission</Link></li>
               <li><Link href="/offres">Offres & Tarifs</Link></li>
               <li><Link href="/pros">Pour les Pros</Link></li>
               <li><Link href="/travailleurs">Pour les Travailleurs</Link></li>
               <li><Link href="/comment">Comment ça marche</Link></li>
+              <li><Link href="/classement">Classement des travailleurs</Link></li>
             </ul>
           </div>
           <div>

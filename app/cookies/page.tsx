@@ -3,8 +3,9 @@ import Footer from '@/components/Footer';
 import Link from 'next/link';
 
 export const metadata = {
-  title: "Politique de cookies — Jobici",
+  title: "Politique de cookies",
   description: "Comment Jobici utilise les cookies et comment gérer vos préférences.",
+  alternates: { canonical: "/cookies" },
 };
 
 export default function CookiesPage() {

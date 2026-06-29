@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import MaillageLinks from '@/components/MaillageLinks';
 import { supabase, type Mission } from '@/lib/supabase';
 
 const FILTERS = [
@@ -125,6 +126,8 @@ export default function MissionsPage() {
           <Link href="/publier-mission" className="btn-primary">Publier une mission →</Link>
         </div>
       </main>
+
+      <MaillageLinks current="/missions" />
 
       <Footer />
     </>

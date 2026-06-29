@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import MissionCard from '@/components/MissionCard';
+import MaillageLinks from '@/components/MaillageLinks';
 import { supabase, type Mission } from '@/lib/supabase';
 
 const FILTERS = [
@@ -239,6 +240,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <MaillageLinks current="/" />
 
       <Footer />
     </>

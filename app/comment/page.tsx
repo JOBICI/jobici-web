@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import MaillageLinks from '@/components/MaillageLinks';
 
 const STEPS_EMP = [
   { n: 1, e: '📱', t: 'Inscrivez-vous',       d: 'Inscription gratuite en 2 minutes. Créez votre compte (Professionnel ou Particulier).' },
@@ -146,6 +147,8 @@ export default function CommentPage() {
           <Link href="/inscription" className="btn-primary">S'inscrire gratuitement →</Link>
         </div>
       </section>
+
+      <MaillageLinks current="/comment" />
 
       <Footer />
     </>

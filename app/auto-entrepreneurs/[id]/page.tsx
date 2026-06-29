@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import MaillageLinks from '@/components/MaillageLinks';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 
@@ -340,6 +341,8 @@ export default function AutoEntrepreneurProfilePage() {
           </div>
         </>
       )}
+
+      <MaillageLinks title="Continuer sur Jobici" />
 
       <Footer />
     </>

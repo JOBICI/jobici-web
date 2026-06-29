@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import MaillageLinks from '@/components/MaillageLinks';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 
@@ -439,6 +440,8 @@ export default function MissionDetailPage() {
           )}
         </div>
       </main>
+
+      <MaillageLinks title="Continuer sur Jobici" />
 
       <Footer />
     </>

@@ -54,8 +54,10 @@ export default function MessagesPage() {
   const [loadingConv, setLoadingConv] = useState(true);
   const [sending, setSending] = useState(false);
   const [deletingMsgId, setDeletingMsgId] = useState<string | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/connexion');
@@ -81,13 +83,15 @@ export default function MessagesPage() {
         data.map(async (conv: any) => {
           const { data: msg } = await supabase
             .from('messages')
-            .select('texte, created_at')
+            .select('texte, created_at, type')
             .eq('conversation_id', conv.id)
             .order('created_at', { ascending: false })
             .limit(1);
           return {
             ...conv,
-            derniere_message: msg?.[0]?.texte || 'Nouvelle conversation',
+            derniere_message: msg?.[0]
+              ? (msg[0].type === 'document' ? '📄 Document' : msg[0].texte)
+              : 'Nouvelle conversation',
             derniere_message_date: msg?.[0]?.created_at || conv.created_at,
           };
         })
@@ -162,6 +166,35 @@ export default function MessagesPage() {
     }
   }
 
+  async function ouvrirDocument(texte: string) {
+    let path = '';
+    try { path = JSON.parse(texte)?.path ?? ''; } catch { /* ignore */ }
+    if (!path) return;
+    const { data, error } = await supabase.storage.from('Document').createSignedUrl(path, 3600);
+    if (error || !data?.signedUrl) { alert("Impossible d'ouvrir le document."); return; }
+    window.open(data.signedUrl, '_blank');
+  }
+
+  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !user || !activeConv) return;
+    setUploadingDoc(true);
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `messages/${activeConv.id}/${Date.now()}-${safe}`;
+    const { error: upErr } = await supabase.storage.from('Document').upload(path, file, {
+      contentType: file.type || 'application/octet-stream', upsert: true,
+    });
+    if (upErr) { setUploadingDoc(false); alert('Envoi du document impossible : ' + upErr.message); return; }
+    await supabase.from('messages').insert({
+      conversation_id: activeConv.id,
+      auteur_id: user.id,
+      texte: JSON.stringify({ path, name: file.name }),
+      type: 'document',
+    });
+    setUploadingDoc(false);
+  }
+
   function getOther(conv: Conversation) {
     const isEmployeur = conv.employeur_id === user?.id;
     return isEmployeur ? conv.travailleur : conv.employeur;
@@ -211,18 +244,25 @@ export default function MessagesPage() {
               </p>
             ) : messages.map(m => {
               const isMine = m.auteur_id === user.id;
+              const isDoc = m.type === 'document';
+              let docName = 'Document';
+              if (isDoc) { try { docName = JSON.parse(m.texte)?.name || 'Document'; } catch { /* ignore */ } }
               return (
                 <div key={m.id} style={{ alignSelf: isMine ? 'flex-end' : 'flex-start', maxWidth: '75%' }}>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', flexDirection: isMine ? 'row-reverse' : 'row' }}>
-                    <div style={{
-                      background: isMine ? 'var(--teal)' : 'white',
-                      color: isMine ? 'var(--navy)' : 'var(--text-dark)',
-                      padding: '10px 14px', borderRadius: 16,
-                      border: isMine ? 'none' : '1px solid var(--border)',
-                      fontSize: 14, lineHeight: 1.4,
-                      whiteSpace: 'pre-wrap',
-                    }}>
-                      {m.texte}
+                    <div
+                      onClick={isDoc ? () => ouvrirDocument(m.texte) : undefined}
+                      style={{
+                        background: isMine ? 'var(--teal)' : 'white',
+                        color: isMine ? 'var(--navy)' : 'var(--text-dark)',
+                        padding: '10px 14px', borderRadius: 16,
+                        border: isMine ? 'none' : '1px solid var(--border)',
+                        fontSize: 14, lineHeight: 1.4,
+                        whiteSpace: 'pre-wrap',
+                        cursor: isDoc ? 'pointer' : 'default',
+                        fontWeight: isDoc ? 700 : 400,
+                      }}>
+                      {isDoc ? `📄 ${docName} · Télécharger` : m.texte}
                     </div>
                     {isMine && (
                       <button
@@ -244,6 +284,11 @@ export default function MessagesPage() {
           </div>
 
           <div style={{ display: 'flex', gap: 8, padding: '12px 0', borderTop: '1px solid var(--border)' }}>
+            <input ref={fileInputRef} type="file" accept="application/pdf,image/*" onChange={onPickFile} style={{ display: 'none' }} />
+            <button onClick={() => fileInputRef.current?.click()} disabled={uploadingDoc} title="Joindre un document (PDF)"
+              style={{ background: 'var(--cream)', border: '1.5px solid var(--border)', borderRadius: 999, padding: '0 14px', fontSize: 18, cursor: uploadingDoc ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+              {uploadingDoc ? '⏳' : '📎'}
+            </button>
             <input
               type="text"
               value={newMessage}

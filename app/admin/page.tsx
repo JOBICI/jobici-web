@@ -43,6 +43,7 @@ export default function AdminPage() {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [contratModal, setContratModal] = useState<Candidature | null>(null);
   const [contratTexte, setContratTexte] = useState('');
+  const [contratFile, setContratFile] = useState<File | null>(null);
   const [vue, setVue] = useState<'candidatures' | 'creer-pro'>('candidatures');
 
   function showToast(type: 'success' | 'error', msg: string) {
@@ -94,7 +95,7 @@ export default function AdminPage() {
       `Bonjour ${prenom} et ${prenomPro},\n\n` +
       `Suite à l'acceptation de la candidature pour la mission "${c.mission?.titre || ''}" à ${c.mission?.ville || ''}, ` +
       `veuillez trouver ci-joint le contrat de mission Jobici.\n\n` +
-      `[Insérez le lien ou les détails du contrat ici]\n\n` +
+      `Merci de le télécharger, le signer et le renvoyer dans cette conversation (l'employeur d'abord, puis le travailleur).\n\n` +
       `Pour toute question, contactez-nous à contact@job-ici.com.\n\nCordialement,\nL'équipe Jobici`
     );
     setContratModal(c);
@@ -102,27 +103,57 @@ export default function AdminPage() {
 
   async function envoyerContrat() {
     if (!contratModal || !user) return;
+    if (!contratFile) { showToast('error', 'Sélectionnez le fichier du contrat (PDF).'); return; }
+
+    const missionId = contratModal.mission_id;
+    const travailleurId = contratModal.travailleur_id;
+    const employeurId = contratModal.mission?.employeur_id;
+    if (!employeurId || !travailleurId) { showToast('error', 'Parties manquantes (employeur / travailleur).'); return; }
+
     setSending(contratModal.id);
 
-    const now = new Date().toISOString();
-    const msgs = [];
-
-    if (contratModal.travailleur_id) {
-      msgs.push({ sender_id: user.id, receiver_id: contratModal.travailleur_id, contenu: contratTexte, created_at: now, lu: false });
+    // 1. Trouver (ou créer) la conversation pro ↔ travailleur
+    let convId: string | null = null;
+    const { data: conv } = await supabase.from('conversations')
+      .select('id')
+      .eq('mission_id', missionId)
+      .eq('travailleur_id', travailleurId)
+      .eq('employeur_id', employeurId)
+      .order('created_at', { ascending: false })
+      .limit(1).maybeSingle();
+    convId = conv?.id ?? null;
+    if (!convId) {
+      const { data: newConv, error: convErr } = await supabase.from('conversations')
+        .insert({ mission_id: missionId, travailleur_id: travailleurId, employeur_id: employeurId, montant: contratModal.mission?.tarif ?? 0 })
+        .select('id').single();
+      if (convErr || !newConv) { setSending(null); showToast('error', 'Conversation introuvable : ' + (convErr?.message ?? '')); return; }
+      convId = newConv.id;
     }
-    if (contratModal.mission?.employeur_id) {
-      msgs.push({ sender_id: user.id, receiver_id: contratModal.mission.employeur_id, contenu: contratTexte, created_at: now, lu: false });
-    }
 
+    // 2. Upload du PDF dans le bucket Document
+    const safe = contratFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `contrats/${convId}/${Date.now()}-${safe}`;
+    const { error: upErr } = await supabase.storage.from('Document').upload(path, contratFile, {
+      contentType: contratFile.type || 'application/octet-stream', upsert: true,
+    });
+    if (upErr) { setSending(null); showToast('error', 'Upload impossible : ' + upErr.message); return; }
+
+    // 3. Message d'intro (optionnel) + message "document" dans la conversation
+    const msgs: Record<string, unknown>[] = [];
+    if (contratTexte.trim()) {
+      msgs.push({ conversation_id: convId, auteur_id: user.id, texte: contratTexte.trim(), type: 'normal' });
+    }
+    msgs.push({ conversation_id: convId, auteur_id: user.id, texte: JSON.stringify({ path, name: contratFile.name }), type: 'document' });
     const { error } = await supabase.from('messages').insert(msgs);
 
     setSending(null);
     setContratModal(null);
+    setContratFile(null);
 
     if (error) {
-      showToast('error', 'Erreur lors de l\'envoi : ' + error.message);
+      showToast('error', "Erreur lors de l'envoi : " + error.message);
     } else {
-      showToast('success', '✅ Contrat envoyé aux deux parties !');
+      showToast('success', '✅ Contrat envoyé dans la conversation !');
       await changerStatut(contratModal.id, 'acceptee');
     }
   }
@@ -333,8 +364,20 @@ export default function AdminPage() {
               📄 Envoyer le contrat
             </h3>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
-              Ce message sera envoyé à <strong>{contratModal.travailleur?.nom}</strong> et à <strong>{contratModal.employeur?.nom}</strong>.
+              Le contrat (PDF) sera déposé dans la conversation entre <strong>{contratModal.travailleur?.nom}</strong> et <strong>{contratModal.employeur?.nom}</strong>. Ils pourront le télécharger, le signer et le renvoyer.
             </p>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--navy)', marginBottom: 6 }}>
+              Fichier du contrat (PDF)
+            </label>
+            <input
+              type="file"
+              accept="application/pdf,image/*"
+              onChange={e => setContratFile(e.target.files?.[0] ?? null)}
+              style={{ display: 'block', marginBottom: 14, fontFamily: 'inherit', fontSize: 13 }}
+            />
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--navy)', marginBottom: 6 }}>
+              Message d&apos;accompagnement (optionnel)
+            </label>
             <textarea
               value={contratTexte}
               onChange={e => setContratTexte(e.target.value)}
@@ -347,16 +390,16 @@ export default function AdminPage() {
               }}
             />
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
-              <button onClick={() => setContratModal(null)}
+              <button onClick={() => { setContratModal(null); setContratFile(null); }}
                 style={{ ...btnStyle, background: 'var(--cream)', color: 'var(--navy)', border: '1px solid var(--border)' }}>
                 Annuler
               </button>
               <button
                 onClick={envoyerContrat}
-                disabled={!!sending || !contratTexte.trim()}
-                style={{ ...btnStyle, background: 'var(--navy)', color: 'white', opacity: sending ? 0.6 : 1 }}
+                disabled={!!sending || !contratFile}
+                style={{ ...btnStyle, background: 'var(--navy)', color: 'white', opacity: (sending || !contratFile) ? 0.6 : 1 }}
               >
-                {sending ? '⏳ Envoi…' : 'Envoyer →'}
+                {sending ? '⏳ Envoi…' : 'Envoyer le contrat →'}
               </button>
             </div>
           </div>

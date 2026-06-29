@@ -2,7 +2,11 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
-export const metadata = { title: "Pour les Pros — Jobici" };
+export const metadata = {
+  title: "Pour les Pros — recrutez vos renforts",
+  description: "Restaurant, boutique, artisan, salon de coiffure… Jobici simplifie le recrutement de personnel pour vos missions ponctuelles ou récurrentes en Ardèche. Publiez une mission en quelques minutes.",
+  alternates: { canonical: "/pros" },
+};
 
 export default function ProsPage() {
   return (

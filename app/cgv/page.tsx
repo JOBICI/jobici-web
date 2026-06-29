@@ -2,8 +2,9 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export const metadata = {
-  title: "Conditions Générales de Vente — Jobici",
+  title: "Conditions Générales de Vente",
   description: "CGV de la plateforme Jobici.",
+  alternates: { canonical: "/cgv" },
 };
 
 export default function CGVPage() {

@@ -2,8 +2,9 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export const metadata = {
-  title: "Conditions Générales d'Utilisation — Jobici",
+  title: "Conditions Générales d'Utilisation",
   description: "CGU de la plateforme Jobici.",
+  alternates: { canonical: "/cgu" },
 };
 
 export default function CGUPage() {

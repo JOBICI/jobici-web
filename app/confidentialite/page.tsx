@@ -2,8 +2,9 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export const metadata = {
-  title: "Politique de confidentialité — Jobici",
+  title: "Politique de confidentialité",
   description: "Comment Jobici protège vos données personnelles selon le RGPD.",
+  alternates: { canonical: "/confidentialite" },
 };
 
 export default function ConfidentialitePage() {

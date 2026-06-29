@@ -2,7 +2,11 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
-export const metadata = { title: "Pour les Travailleurs — Jobici" };
+export const metadata = {
+  title: "Pour les Travailleurs — trouvez des missions",
+  description: "Étudiants et travailleurs : trouvez des missions flexibles et rémunérées près de chez vous. 0 % de commission, paiement sécurisé et cotisations CESU automatiques.",
+  alternates: { canonical: "/travailleurs" },
+};
 
 export default function TravailleursPage() {
   return (
