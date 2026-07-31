@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/lib/AuthContext";
 import CookieBanner from "@/components/CookieBanner";
 import JsonLd from "@/components/JsonLd";
+import Analytics from "@/components/Analytics";
 import { SITE_URL, SITE_NAME, OG_IMAGE, KEYWORDS } from "@/lib/seo";
 import "./globals.css";
 
@@ -105,6 +106,7 @@ export default function RootLayout({
         <JsonLd data={[orgJsonLd, siteJsonLd]} />
         <AuthProvider>{children}</AuthProvider>
         <CookieBanner />
+        <Analytics />
       </body>
     </html>
   );
