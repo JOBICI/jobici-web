@@ -31,6 +31,8 @@ export default function CookieBanner() {
 
   function saveConsent(consent: CookieConsent) {
     localStorage.setItem(COOKIE_KEY, JSON.stringify(consent));
+    // Prévenir le tag Analytics du nouveau choix (activation/coupure sans reload)
+    window.dispatchEvent(new CustomEvent('jobici-consent-changed', { detail: consent }));
     setVisible(false);
   }
 
