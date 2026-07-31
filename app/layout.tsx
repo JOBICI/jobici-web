@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   creator: "JOBICI SASU",
   publisher: "JOBICI SASU",
   category: "Emploi & services de proximité",
+  verification: {
+    google: "G-r6-0D3eE0ek1rhsLSD9D7dcy6urFTBkdJK5x_2c6k",
+  },
   alternates: { canonical: "/" },
   robots: {
     index: true,
