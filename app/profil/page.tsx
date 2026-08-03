@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 
 const BUCKET = 'Document';
+const ADMIN_EMAIL = 'dylan.2005.redon@gmail.com';
 
 const METIERS = [
   '', 'Plomberie', 'Électricité', 'Menuiserie', 'Jardinage', 'Ménage',
@@ -230,6 +231,7 @@ export default function ProfilPage() {
   const isWorker      = userProfile?.statut === 'worker';
   const isAuto        = userProfile?.statut === 'autoentrepreneur';
   const isPro         = userProfile?.statut === 'employer' || isAuto;
+  const isAdmin       = user.email === ADMIN_EMAIL;
 
   return (
     <>
@@ -342,13 +344,13 @@ export default function ProfilPage() {
         )}
 
         {/* DOCUMENTS TRAVAILLEURS */}
-        {isWorker && (!cniUrl || !carteVitaleUrl) && (
+        {!isAdmin && isWorker && (!cniUrl || !carteVitaleUrl) && (
           <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 14, padding: 20, marginBottom: 24 }}>
             <h3 style={{ fontSize: 15, fontWeight: 800, color: '#92400E', marginBottom: 8 }}>⚠️ Documents manquants</h3>
             <p style={{ fontSize: 13, color: '#92400E', lineHeight: 1.6 }}>Vous devez ajouter votre carte d'identité et votre carte vitale pour postuler.</p>
           </div>
         )}
-        {isWorker && cniUrl && carteVitaleUrl && (
+        {!isAdmin && isWorker && cniUrl && carteVitaleUrl && (
           <div style={{ background: 'var(--teal-light)', border: '1px solid var(--teal-border)', borderRadius: 14, padding: 20, marginBottom: 24 }}>
             <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--teal-dark)', marginBottom: 4 }}>✅ Documents complets</h3>
             <p style={{ fontSize: 13, color: 'var(--text-mid)' }}>Vous pouvez postuler à toutes les missions.</p>
@@ -554,7 +556,7 @@ export default function ProfilPage() {
         )}
 
         {/* DOCUMENTS */}
-        {(isWorker || userProfile?.statut === 'particulier' || isAuto || userProfile?.statut === 'employer') && (
+        {!isAdmin && (isWorker || userProfile?.statut === 'particulier' || isAuto || userProfile?.statut === 'employer') && (
           <div style={cardStyle}>
             <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>📄 Mes documents</h2>
             <p style={{ fontSize: 13, color: 'var(--text-mid)', marginBottom: 20, lineHeight: 1.6 }}>
