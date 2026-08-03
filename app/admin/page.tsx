@@ -19,8 +19,8 @@ type Candidature = {
   mission_id: string;
   travailleur_id: string;
   mission: { titre: string; ville: string; tarif: number; duree_mois: number | null; commission_totale: number | null; employeur_id: string } | null;
-  travailleur: { nom: string; email_contact: string | null } | null;
-  employeur: { nom: string; email_contact: string | null } | null;
+  travailleur: { id: string; nom: string; email_contact: string | null; est_verifie: boolean | null } | null;
+  employeur: { id: string; nom: string; email_contact: string | null } | null;
 };
 
 const STATUT_COLORS: Record<string, string> = {
@@ -69,11 +69,11 @@ export default function AdminPage() {
     const enriched: Candidature[] = await Promise.all(data.map(async (c) => {
       const [{ data: mission }, { data: travailleur }] = await Promise.all([
         supabase.from('missions').select('titre, ville, tarif, duree_mois, commission_totale, employeur_id').eq('id', c.mission_id).single(),
-        supabase.from('profiles').select('nom, email_contact').eq('id', c.travailleur_id).single(),
+        supabase.from('profiles').select('id, nom, email_contact, est_verifie').eq('id', c.travailleur_id).single(),
       ]);
 
       const employeur = mission?.employeur_id
-        ? (await supabase.from('profiles').select('nom, email_contact').eq('id', mission.employeur_id).single()).data
+        ? (await supabase.from('profiles').select('id, nom, email_contact').eq('id', mission.employeur_id).single()).data
         : null;
 
       return { ...c, mission: mission ?? null, travailleur: travailleur ?? null, employeur: employeur ?? null };
@@ -288,12 +288,23 @@ export default function AdminPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                   <div style={{ background: 'var(--cream)', borderRadius: 10, padding: '10px 14px' }}>
                     <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>Travailleur</p>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>{c.travailleur?.nom || '—'}</p>
+                    {c.travailleur ? (
+                      <Link href={`/profil/${c.travailleur.id}`} target="_blank" style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', textDecoration: 'underline' }}>
+                        {c.travailleur.nom || '—'}
+                      </Link>
+                    ) : <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>—</p>}
                     {c.travailleur?.email_contact && <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{c.travailleur.email_contact}</p>}
+                    <p style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: c.travailleur?.est_verifie ? '#10B981' : '#F59E0B' }}>
+                      {c.travailleur?.est_verifie ? '✅ Identité vérifiée' : '⚠️ Documents non vérifiés'}
+                    </p>
                   </div>
                   <div style={{ background: 'var(--cream)', borderRadius: 10, padding: '10px 14px' }}>
                     <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>Professionnel</p>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>{c.employeur?.nom || '—'}</p>
+                    {c.employeur ? (
+                      <Link href={`/profil/${c.employeur.id}`} target="_blank" style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', textDecoration: 'underline' }}>
+                        {c.employeur.nom || '—'}
+                      </Link>
+                    ) : <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>—</p>}
                     {c.employeur?.email_contact && <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{c.employeur.email_contact}</p>}
                   </div>
                 </div>
@@ -317,9 +328,16 @@ export default function AdminPage() {
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {c.statut === 'en_attente' && (
                     <>
-                      <button onClick={() => changerStatut(c.id, 'acceptee')}
-                        style={{ ...btnStyle, background: '#10B981', color: 'white' }}>
-                        ✅ Accepter
+                      <button
+                        onClick={() => {
+                          if (!c.travailleur?.est_verifie) {
+                            showToast('error', "Impossible d'accepter : la carte d'identité de ce travailleur n'a pas encore été validée (onglet Documents à valider).");
+                            return;
+                          }
+                          changerStatut(c.id, 'acceptee');
+                        }}
+                        style={{ ...btnStyle, background: '#10B981', color: 'white', opacity: c.travailleur?.est_verifie ? 1 : 0.5 }}>
+                        {c.travailleur?.est_verifie ? '✅ Accepter' : '🔒 Accepter (documents non vérifiés)'}
                       </button>
                       <button onClick={() => changerStatut(c.id, 'refusee')}
                         style={{ ...btnStyle, background: '#EF4444', color: 'white' }}>
