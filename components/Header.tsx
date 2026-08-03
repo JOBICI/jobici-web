@@ -4,12 +4,15 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 
+const ADMIN_EMAIL = 'dylan.2005.redon@gmail.com';
+
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { user, userProfile, logout } = useAuth();
 
   const initial = (userProfile?.nom || user?.email || '?').charAt(0).toUpperCase();
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   return (
     <header className="header">
@@ -71,7 +74,12 @@ export default function Header() {
                   <Link href="/publier-mission" style={dropdownItemStyle} onClick={() => setProfileOpen(false)}>
                     📋 Publier une mission
                   </Link>
-            
+                  {isAdmin && (
+                    <Link href="/admin" style={dropdownItemStyle} onClick={() => setProfileOpen(false)}>
+                      🛠️ Administration
+                    </Link>
+                  )}
+
                   <button
                     onClick={async () => { await logout(); setProfileOpen(false); }}
                     style={{ ...dropdownItemStyle, color: 'var(--urgent)', background: 'transparent', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}
@@ -112,6 +120,9 @@ export default function Header() {
               <Link href="/classement" onClick={() => setMenuOpen(false)}>🏆 Classement</Link>
               <Link href="/messages" onClick={() => setMenuOpen(false)}>💬 Messages</Link>
               <Link href="/publier-mission" onClick={() => setMenuOpen(false)}>📋 Publier une mission</Link>
+              {isAdmin && (
+                <Link href="/admin" onClick={() => setMenuOpen(false)}>🛠️ Administration</Link>
+              )}
               <button
                 onClick={async () => { await logout(); setMenuOpen(false); }}
                 style={{ background: 'none', border: 'none', textAlign: 'left', color: 'var(--urgent)', fontFamily: 'inherit', fontWeight: 600, cursor: 'pointer', padding: 0 }}
