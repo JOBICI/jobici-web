@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import CreerProForm from '@/components/CreerProForm';
 import ValiderDocumentsPanel from '@/components/ValiderDocumentsPanel';
+import UtilisateursPanel from '@/components/UtilisateursPanel';
 
 const ADMIN_EMAIL = 'dylan.2005.redon@gmail.com';
 
@@ -45,7 +46,7 @@ export default function AdminPage() {
   const [contratModal, setContratModal] = useState<Candidature | null>(null);
   const [contratTexte, setContratTexte] = useState('');
   const [contratFile, setContratFile] = useState<File | null>(null);
-  const [vue, setVue] = useState<'candidatures' | 'creer-pro' | 'documents'>('candidatures');
+  const [vue, setVue] = useState<'candidatures' | 'creer-pro' | 'documents' | 'utilisateurs'>('candidatures');
 
   function showToast(type: 'success' | 'error', msg: string) {
     setToast({ type, msg });
@@ -207,6 +208,7 @@ export default function AdminPage() {
           {[
             { id: 'candidatures' as const, label: '📋 Candidatures' },
             { id: 'documents' as const, label: '🪪 Documents à valider' },
+            { id: 'utilisateurs' as const, label: '👥 Utilisateurs' },
             { id: 'creer-pro' as const, label: '🏢 Créer un Professionnel' },
           ].map(v => (
             <button key={v.id} onClick={() => setVue(v.id)}
@@ -226,6 +228,8 @@ export default function AdminPage() {
           <CreerProForm onResult={showToast} />
         ) : vue === 'documents' ? (
           <ValiderDocumentsPanel onResult={showToast} />
+        ) : vue === 'utilisateurs' ? (
+          <UtilisateursPanel onResult={showToast} />
         ) : (
         <>
         {/* Filtres */}
