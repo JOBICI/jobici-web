@@ -46,12 +46,18 @@ export default function ProfilPage() {
   const [cvUrl, setCvUrl]             = useState<string | null>(null);
   const [lettreUrl, setLettreUrl]     = useState<string | null>(null);
 
-  // Documents
-  const [cniUrl, setCniUrl]                         = useState<string | null>(null);
-  const [carteVitaleUrl, setCarteVitaleUrl]         = useState<string | null>(null);
-  const [kbisUrl, setKbisUrl]                       = useState<string | null>(null);
-  const [autorisationUrl, setAutorisationUrl]       = useState<string | null>(null);
-  const [cniResponsableUrl, setCniResponsableUrl]   = useState<string | null>(null);
+  // Documents d'identité — vérification partagée avec l'app mobile (table documents_identite,
+  // validée par un admin), plus les colonnes texte carte_identite_url etc. côté profiles.
+  type DocStatut = 'non_depose' | 'en_attente' | 'valide' | 'refuse';
+  type IdentiteDocType = 'cni' | 'vitale' | 'kbis' | 'autorisation' | 'cni_responsable';
+  const IDENTITE_VIDE: Record<IdentiteDocType, { statut: DocStatut; path: string | null }> = {
+    cni:             { statut: 'non_depose', path: null },
+    vitale:          { statut: 'non_depose', path: null },
+    kbis:            { statut: 'non_depose', path: null },
+    autorisation:    { statut: 'non_depose', path: null },
+    cni_responsable: { statut: 'non_depose', path: null },
+  };
+  const [docStatuts, setDocStatuts]                 = useState(IDENTITE_VIDE);
   const [uploadingDoc, setUploadingDoc]             = useState<string | null>(null);
   const [uploadError, setUploadError]               = useState('');
 
@@ -73,16 +79,34 @@ export default function ProfilPage() {
       setBio(userProfile.bio || '');
       setEmailContact(userProfile.email_contact || '');
       setTelephone(userProfile.telephone || '');
-      setCniUrl(userProfile.carte_identite_url || null);
-      setCarteVitaleUrl(userProfile.carte_vitale_url || null);
-      setKbisUrl(userProfile.kbis_url || null);
-      setAutorisationUrl(userProfile.autorisation_parentale_url || null);
-      setCniResponsableUrl(userProfile.cni_responsable_url || null);
       setExperiences(userProfile.experiences || '');
       setCvUrl(userProfile.cv_url || null);
       setLettreUrl(userProfile.lettre_motivation_url || null);
     }
   }, [authLoading, user, userProfile, router]);
+
+  // Charger le statut réel des documents d'identité (table partagée avec l'app mobile)
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from('documents_identite')
+        .select('type, statut, storage_path, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (!data) return;
+      setDocStatuts(prev => {
+        const next = { ...prev };
+        const vus = new Set<string>();
+        for (const row of data) {
+          if (vus.has(row.type) || !(row.type in next)) continue;
+          vus.add(row.type);
+          next[row.type as IdentiteDocType] = { statut: row.statut as DocStatut, path: row.storage_path };
+        }
+        return next;
+      });
+    })();
+  }, [user]);
 
   async function handleSave() {
     if (!user) return;
@@ -149,16 +173,11 @@ export default function ProfilPage() {
     loadMissions();
   }
 
-  type DocType = 'cni' | 'vitale' | 'kbis' | 'autorisation' | 'cni_responsable' | 'cv' | 'lettre';
-
+  // CV / lettre de motivation : simple stockage, pas de vérification d'identité
+  type DocType = 'cv' | 'lettre';
   const DOC_CONFIG: Record<DocType, { column: string; fileName: string; setter: (v: string) => void }> = {
-    cni:             { column: 'carte_identite_url',         fileName: 'carte_identite',          setter: setCniUrl },
-    vitale:          { column: 'carte_vitale_url',           fileName: 'carte_vitale',            setter: setCarteVitaleUrl },
-    kbis:            { column: 'kbis_url',                   fileName: 'kbis',                    setter: setKbisUrl },
-    autorisation:    { column: 'autorisation_parentale_url', fileName: 'autorisation_parentale',  setter: setAutorisationUrl },
-    cni_responsable: { column: 'cni_responsable_url',        fileName: 'cni_responsable',         setter: setCniResponsableUrl },
-    cv:              { column: 'cv_url',                     fileName: 'cv',                      setter: setCvUrl },
-    lettre:          { column: 'lettre_motivation_url',      fileName: 'lettre_motivation',       setter: setLettreUrl },
+    cv:      { column: 'cv_url',                fileName: 'cv',                 setter: setCvUrl },
+    lettre:  { column: 'lettre_motivation_url', fileName: 'lettre_motivation',  setter: setLettreUrl },
   };
 
   async function uploadDocument(file: File, type: DocType) {
@@ -183,28 +202,6 @@ export default function ProfilPage() {
 
     await supabase.from('profiles').update({ [cfg.column]: fileName }).eq('id', user.id);
     cfg.setter(fileName);
-
-    // Vérifier si documents complets selon le statut
-    const { data: prof } = await supabase
-      .from('profiles')
-      .select('carte_identite_url, carte_vitale_url, kbis_url, statut, statut_validation, autorisation_parentale_url, cni_responsable_url')
-      .eq('id', user.id).single();
-
-    if (prof) {
-      let complets = false;
-      if (prof.statut === 'worker') {
-        const isMineur = prof.statut_validation === 'en_attente_parental';
-        complets = isMineur
-          ? !!(prof.carte_identite_url && prof.carte_vitale_url && prof.autorisation_parentale_url && prof.cni_responsable_url)
-          : !!(prof.carte_identite_url && prof.carte_vitale_url);
-      } else if (prof.statut === 'particulier' || prof.statut === 'autoentrepreneur') {
-        complets = !!prof.carte_identite_url;
-      } else if (prof.statut === 'employer') {
-        complets = !!prof.kbis_url;
-      }
-      await supabase.from('profiles').update({ documents_complets: complets }).eq('id', user.id);
-    }
-
     setUploadingDoc(null);
     await refreshProfile();
   }
@@ -212,6 +209,44 @@ export default function ProfilPage() {
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>, type: DocType) {
     const file = e.target.files?.[0];
     if (file) uploadDocument(file, type);
+  }
+
+  // Documents d'identité : upload + insertion dans documents_identite, en attente
+  // de validation par un admin (partagé avec l'app mobile, voir aussi
+  // supabase/functions/admin-valider-document côté app).
+  async function uploadIdentiteDocument(file: File, type: IdentiteDocType) {
+    if (!user) return;
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (!validTypes.includes(file.type)) { setUploadError('Format non supporté. Utilisez JPG, PNG ou PDF.'); return; }
+    if (file.size > 5 * 1024 * 1024) { setUploadError('Fichier trop volumineux. Maximum 5 MB.'); return; }
+
+    setUploadError('');
+    setUploadingDoc(type);
+
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `identite/${user.id}/${type}-${Date.now()}-${safe}`;
+
+    const { error: uploadErr } = await supabase.storage.from(BUCKET).upload(path, file, {
+      contentType: file.type, upsert: true,
+    });
+    if (uploadErr) {
+      setUploadError('Erreur upload : ' + uploadErr.message);
+      setUploadingDoc(null);
+      return;
+    }
+
+    const { error: insErr } = await supabase.from('documents_identite').insert({
+      user_id: user.id, type, storage_path: path,
+    });
+    setUploadingDoc(null);
+    if (insErr) { setUploadError('Document envoyé mais non enregistré : ' + insErr.message); return; }
+
+    setDocStatuts(prev => ({ ...prev, [type]: { statut: 'en_attente' as DocStatut, path } }));
+  }
+
+  function handleIdentiteFileSelect(e: React.ChangeEvent<HTMLInputElement>, type: IdentiteDocType) {
+    const file = e.target.files?.[0];
+    if (file) uploadIdentiteDocument(file, type);
   }
 
   async function voirDocument(path: string) {
@@ -344,15 +379,15 @@ export default function ProfilPage() {
         )}
 
         {/* DOCUMENTS TRAVAILLEURS */}
-        {!isAdmin && isWorker && (!cniUrl || !carteVitaleUrl) && (
+        {!isAdmin && isWorker && !userProfile?.est_verifie && (
           <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 14, padding: 20, marginBottom: 24 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 800, color: '#92400E', marginBottom: 8 }}>⚠️ Documents manquants</h3>
-            <p style={{ fontSize: 13, color: '#92400E', lineHeight: 1.6 }}>Vous devez ajouter votre carte d'identité et votre carte vitale pour postuler.</p>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: '#92400E', marginBottom: 8 }}>⚠️ Identité non vérifiée</h3>
+            <p style={{ fontSize: 13, color: '#92400E', lineHeight: 1.6 }}>Ajoutez votre carte d'identité et votre carte vitale ci-dessous. Un administrateur doit valider vos documents avant que vous puissiez postuler.</p>
           </div>
         )}
-        {!isAdmin && isWorker && cniUrl && carteVitaleUrl && (
+        {!isAdmin && isWorker && userProfile?.est_verifie && (
           <div style={{ background: 'var(--teal-light)', border: '1px solid var(--teal-border)', borderRadius: 14, padding: 20, marginBottom: 24 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--teal-dark)', marginBottom: 4 }}>✅ Documents complets</h3>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--teal-dark)', marginBottom: 4 }}>✅ Identité vérifiée</h3>
             <p style={{ fontSize: 13, color: 'var(--text-mid)' }}>Vous pouvez postuler à toutes les missions.</p>
           </div>
         )}
@@ -565,40 +600,40 @@ export default function ProfilPage() {
 
             {/* Travailleur : CNI + carte vitale (+ mineur) */}
             {isWorker && <>
-              <DocumentUpload icon="🪪" label="Carte d'identité recto-verso" uploaded={!!cniUrl} uploading={uploadingDoc === 'cni'}
-                onUpload={() => cniInputRef.current?.click()} onView={() => cniUrl && voirDocument(cniUrl)} />
-              <input ref={cniInputRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" style={{ display: 'none' }} onChange={e => handleFileSelect(e, 'cni')} />
+              <DocumentUpload icon="🪪" label="Carte d'identité recto-verso" statut={docStatuts.cni.statut} uploading={uploadingDoc === 'cni'}
+                onUpload={() => cniInputRef.current?.click()} onView={() => docStatuts.cni.path && voirDocument(docStatuts.cni.path)} />
+              <input ref={cniInputRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" style={{ display: 'none' }} onChange={e => handleIdentiteFileSelect(e, 'cni')} />
 
-              <DocumentUpload icon="💳" label="Carte vitale" uploaded={!!carteVitaleUrl} uploading={uploadingDoc === 'vitale'}
-                onUpload={() => vitaleInputRef.current?.click()} onView={() => carteVitaleUrl && voirDocument(carteVitaleUrl)} />
-              <input ref={vitaleInputRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" style={{ display: 'none' }} onChange={e => handleFileSelect(e, 'vitale')} />
+              <DocumentUpload icon="💳" label="Carte vitale" statut={docStatuts.vitale.statut} uploading={uploadingDoc === 'vitale'}
+                onUpload={() => vitaleInputRef.current?.click()} onView={() => docStatuts.vitale.path && voirDocument(docStatuts.vitale.path)} />
+              <input ref={vitaleInputRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" style={{ display: 'none' }} onChange={e => handleIdentiteFileSelect(e, 'vitale')} />
 
               {userProfile?.statut_validation === 'en_attente_parental' && <>
                 <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#92400E', fontWeight: 600, margin: '12px 0 8px' }}>
                   ⚠️ Documents supplémentaires requis pour les mineurs
                 </div>
-                <DocumentUpload icon="📝" label="Autorisation parentale" uploaded={!!autorisationUrl} uploading={uploadingDoc === 'autorisation'}
-                  onUpload={() => autorisationInputRef.current?.click()} onView={() => autorisationUrl && voirDocument(autorisationUrl)} />
-                <input ref={autorisationInputRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" style={{ display: 'none' }} onChange={e => handleFileSelect(e, 'autorisation')} />
+                <DocumentUpload icon="📝" label="Autorisation parentale" statut={docStatuts.autorisation.statut} uploading={uploadingDoc === 'autorisation'}
+                  onUpload={() => autorisationInputRef.current?.click()} onView={() => docStatuts.autorisation.path && voirDocument(docStatuts.autorisation.path)} />
+                <input ref={autorisationInputRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" style={{ display: 'none' }} onChange={e => handleIdentiteFileSelect(e, 'autorisation')} />
 
-                <DocumentUpload icon="🪪" label="Carte d'identité du responsable légal" uploaded={!!cniResponsableUrl} uploading={uploadingDoc === 'cni_responsable'}
-                  onUpload={() => cniResponsableRef.current?.click()} onView={() => cniResponsableUrl && voirDocument(cniResponsableUrl)} />
-                <input ref={cniResponsableRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" style={{ display: 'none' }} onChange={e => handleFileSelect(e, 'cni_responsable')} />
+                <DocumentUpload icon="🪪" label="Carte d'identité du responsable légal" statut={docStatuts.cni_responsable.statut} uploading={uploadingDoc === 'cni_responsable'}
+                  onUpload={() => cniResponsableRef.current?.click()} onView={() => docStatuts.cni_responsable.path && voirDocument(docStatuts.cni_responsable.path)} />
+                <input ref={cniResponsableRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" style={{ display: 'none' }} onChange={e => handleIdentiteFileSelect(e, 'cni_responsable')} />
               </>}
             </>}
 
             {/* Particulier + Auto-entrepreneur : CNI */}
             {(userProfile?.statut === 'particulier' || isAuto) && <>
-              <DocumentUpload icon="🪪" label="Carte d'identité recto-verso" uploaded={!!cniUrl} uploading={uploadingDoc === 'cni'}
-                onUpload={() => cniInputRef.current?.click()} onView={() => cniUrl && voirDocument(cniUrl)} />
-              <input ref={cniInputRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" style={{ display: 'none' }} onChange={e => handleFileSelect(e, 'cni')} />
+              <DocumentUpload icon="🪪" label="Carte d'identité recto-verso" statut={docStatuts.cni.statut} uploading={uploadingDoc === 'cni'}
+                onUpload={() => cniInputRef.current?.click()} onView={() => docStatuts.cni.path && voirDocument(docStatuts.cni.path)} />
+              <input ref={cniInputRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" style={{ display: 'none' }} onChange={e => handleIdentiteFileSelect(e, 'cni')} />
             </>}
 
             {/* Professionnel : Kbis */}
             {userProfile?.statut === 'employer' && <>
-              <DocumentUpload icon="📋" label="Extrait Kbis (moins de 3 mois)" uploaded={!!kbisUrl} uploading={uploadingDoc === 'kbis'}
-                onUpload={() => kbisInputRef.current?.click()} onView={() => kbisUrl && voirDocument(kbisUrl)} />
-              <input ref={kbisInputRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" style={{ display: 'none' }} onChange={e => handleFileSelect(e, 'kbis')} />
+              <DocumentUpload icon="📋" label="Extrait Kbis (moins de 3 mois)" statut={docStatuts.kbis.statut} uploading={uploadingDoc === 'kbis'}
+                onUpload={() => kbisInputRef.current?.click()} onView={() => docStatuts.kbis.path && voirDocument(docStatuts.kbis.path)} />
+              <input ref={kbisInputRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf" style={{ display: 'none' }} onChange={e => handleIdentiteFileSelect(e, 'kbis')} />
             </>}
 
             {uploadError && (
@@ -607,9 +642,9 @@ export default function ProfilPage() {
               </div>
             )}
 
-            {userProfile?.documents_complets && (
+            {userProfile?.est_verifie && (
               <div style={{ background: 'var(--teal-light)', border: '1px solid var(--teal-border)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--teal-dark)', fontWeight: 700, marginTop: 12 }}>
-                ✅ Documents complets — vous pouvez {isWorker ? 'postuler aux missions' : 'publier des annonces'}.
+                ✅ Identité vérifiée — vous pouvez {isWorker ? 'postuler aux missions' : 'publier des annonces'}.
               </div>
             )}
           </div>
@@ -675,17 +710,27 @@ function Field({ label, value, editing, onChange }: { label: string; value: stri
   );
 }
 
-function DocumentUpload({ icon, label, uploaded, uploading, onUpload, onView }: { icon: string; label: string; uploaded: boolean; uploading: boolean; onUpload: () => void; onView: () => void }) {
+function DocumentUpload({ icon, label, statut, uploading, onUpload, onView }: {
+  icon: string; label: string; statut: 'non_depose' | 'en_attente' | 'valide' | 'refuse'; uploading: boolean; onUpload: () => void; onView: () => void;
+}) {
+  const INFO: Record<string, { text: string; color: string }> = {
+    non_depose: { text: 'Aucun document', color: 'var(--text-muted)' },
+    en_attente: { text: '⏳ En attente de validation', color: '#B45309' },
+    valide:     { text: '✅ Validé', color: 'var(--teal-dark)' },
+    refuse:     { text: '❌ Refusé — à renvoyer', color: '#991B1B' },
+  };
+  const info = INFO[statut];
+  const depose = statut !== 'non_depose';
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, background: 'var(--cream)', border: `1.5px solid ${uploaded ? 'var(--teal-border)' : 'var(--border)'}`, borderRadius: 12, marginBottom: 12 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, background: 'var(--cream)', border: `1.5px solid ${statut === 'valide' ? 'var(--teal-border)' : 'var(--border)'}`, borderRadius: 12, marginBottom: 12 }}>
       <span style={{ fontSize: 32, flexShrink: 0 }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 2 }}>{label}</p>
-        <p style={{ fontSize: 12, color: uploaded ? 'var(--teal-dark)' : 'var(--text-muted)', fontWeight: 600 }}>{uploaded ? '✓ Document ajouté' : 'Aucun document'}</p>
+        <p style={{ fontSize: 12, color: info.color, fontWeight: 600 }}>{info.text}</p>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
-        {uploaded && <button onClick={onView} style={btnSecondaryStyle}>👁️ Voir</button>}
-        <button onClick={onUpload} disabled={uploading} style={btnPrimaryStyle}>{uploading ? '...' : uploaded ? 'Remplacer' : 'Téléverser'}</button>
+        {depose && <button onClick={onView} style={btnSecondaryStyle}>👁️ Voir</button>}
+        <button onClick={onUpload} disabled={uploading} style={btnPrimaryStyle}>{uploading ? '...' : depose ? 'Remplacer' : 'Téléverser'}</button>
       </div>
     </div>
   );
