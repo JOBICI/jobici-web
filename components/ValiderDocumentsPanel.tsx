@@ -60,8 +60,20 @@ export default function ValiderDocumentsPanel({
 
   async function traiter(documentId: string, decision: 'valide' | 'refuse') {
     setTraitId(documentId);
+
+    // Récupère explicitement la session et l'envoie manuellement : sur certains
+    // navigateurs/onglets, functions.invoke() n'arrive pas à la récupérer seul
+    // et échoue avec "Auth session missing" même si l'utilisateur est connecté.
+    const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+    if (sessionErr || !sessionData.session) {
+      setTraitId(null);
+      onResult('error', 'Session expirée ou introuvable — reconnecte-toi puis réessaie.');
+      return;
+    }
+
     const { data, error } = await supabase.functions.invoke('admin-valider-document', {
       body: { documentId, decision },
+      headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
     });
     setTraitId(null);
 
