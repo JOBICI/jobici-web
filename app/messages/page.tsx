@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
+
+const ADMIN_EMAIL = 'dylan.2005.redon@gmail.com';
 
 type Conversation = {
   id: string;
@@ -44,8 +46,19 @@ function formatTime(dateStr: string): string {
 }
 
 export default function MessagesPage() {
+  return (
+    <Suspense fallback={null}>
+      <MessagesPageInner />
+    </Suspense>
+  );
+}
+
+function MessagesPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const convParam = searchParams.get('conv');
   const { user, loading: authLoading } = useAuth();
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConv, setActiveConv] = useState<Conversation | null>(null);
@@ -67,7 +80,7 @@ export default function MessagesPage() {
     if (!user) return;
     setLoadingConv(true);
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('conversations')
       .select(`
         *,
@@ -75,8 +88,10 @@ export default function MessagesPage() {
         travailleur:profiles!travailleur_id(nom, avatar_lettre),
         employeur:profiles!employeur_id(nom, avatar_lettre)
       `)
-      .or(`travailleur_id.eq.${user.id},employeur_id.eq.${user.id}`)
       .order('created_at', { ascending: false });
+    // L'admin voit toutes les conversations (support, suivi des mises en relation)
+    if (!isAdmin) query = query.or(`travailleur_id.eq.${user.id},employeur_id.eq.${user.id}`);
+    const { data, error } = await query;
 
     if (!error && data) {
       const enriched = await Promise.all(
@@ -99,11 +114,18 @@ export default function MessagesPage() {
       setConversations(enriched as Conversation[]);
     }
     setLoadingConv(false);
-  }, [user]);
+  }, [user, isAdmin]);
 
   useEffect(() => {
     if (user) loadConversations();
   }, [user, loadConversations]);
+
+  // Ouvre directement la conversation ciblée par ?conv=<id> (lien depuis l'admin)
+  useEffect(() => {
+    if (!convParam || conversations.length === 0) return;
+    const match = conversations.find(c => c.id === convParam);
+    if (match) setActiveConv(match);
+  }, [convParam, conversations]);
 
   useEffect(() => {
     if (!activeConv) return;
@@ -230,7 +252,11 @@ export default function MessagesPage() {
               {other?.avatar_lettre || (other?.nom || '?').charAt(0).toUpperCase()}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{other?.nom || 'Utilisateur'}</p>
+              <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>
+                {isAdmin
+                  ? `${activeConv.travailleur?.nom || '?'} ↔ ${activeConv.employeur?.nom || '?'}`
+                  : (other?.nom || 'Utilisateur')}
+              </p>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {activeConv.missions?.emoji} {activeConv.missions?.titre} · {activeConv.missions?.tarif}€
               </p>
@@ -355,7 +381,7 @@ export default function MessagesPage() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {other?.nom || 'Utilisateur'}
+                        {isAdmin ? `${conv.travailleur?.nom || '?'} ↔ ${conv.employeur?.nom || '?'}` : (other?.nom || 'Utilisateur')}
                       </span>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
                         {conv.derniere_message_date ? formatTime(conv.derniere_message_date) : ''}

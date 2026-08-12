@@ -22,6 +22,7 @@ type Candidature = {
   mission: { titre: string; ville: string; tarif: number; duree_mois: number | null; commission_totale: number | null; employeur_id: string } | null;
   travailleur: { id: string; nom: string; email_contact: string | null; est_verifie: boolean | null } | null;
   employeur: { id: string; nom: string; email_contact: string | null } | null;
+  conversation_id: string | null;
 };
 
 const STATUT_COLORS: Record<string, string> = {
@@ -77,7 +78,22 @@ export default function AdminPage() {
         ? (await supabase.from('profiles').select('id, nom, email_contact').eq('id', mission.employeur_id).single()).data
         : null;
 
-      return { ...c, mission: mission ?? null, travailleur: travailleur ?? null, employeur: employeur ?? null };
+      // Conversation liée (même mission + mêmes travailleur/employeur)
+      let conversationId: string | null = null;
+      if (mission?.employeur_id) {
+        const { data: conv } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('mission_id', c.mission_id)
+          .eq('travailleur_id', c.travailleur_id)
+          .eq('employeur_id', mission.employeur_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        conversationId = conv?.id ?? null;
+      }
+
+      return { ...c, mission: mission ?? null, travailleur: travailleur ?? null, employeur: employeur ?? null, conversation_id: conversationId };
     }));
 
     setCandidatures(enriched);
@@ -363,6 +379,24 @@ export default function AdminPage() {
                       style={{ ...btnStyle, background: 'var(--cream)', color: 'var(--text-dark)', border: '1px solid var(--border)' }}>
                       Remettre en attente
                     </button>
+                  )}
+                  {c.statut === 'acceptee' && (
+                    <>
+                      <Link href={`/missions/${c.mission_id}`} target="_blank"
+                        style={{ ...btnStyle, background: 'var(--cream)', color: 'var(--navy)', border: '1px solid var(--border)', textDecoration: 'none', display: 'inline-block' }}>
+                        🎯 Voir la mission
+                      </Link>
+                      {c.conversation_id ? (
+                        <Link href={`/messages?conv=${c.conversation_id}`} target="_blank"
+                          style={{ ...btnStyle, background: 'var(--cream)', color: 'var(--navy)', border: '1px solid var(--border)', textDecoration: 'none', display: 'inline-block' }}>
+                          💬 Voir la conversation
+                        </Link>
+                      ) : (
+                        <span style={{ ...btnStyle, background: 'var(--cream)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                          💬 Conversation introuvable
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
