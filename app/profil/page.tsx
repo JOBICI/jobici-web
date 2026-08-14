@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 
 const BUCKET = 'Document';
-const ADMIN_EMAIL = 'dylan.2005.redon@gmail.com';
+const ADMIN_EMAIL = 'contact@job-ici.com';
 
 const METIERS = [
   '', 'Plomberie', 'Électricité', 'Menuiserie', 'Jardinage', 'Ménage',

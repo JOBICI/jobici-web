@@ -8,7 +8,7 @@ import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 
-const ADMIN_EMAIL = 'dylan.2005.redon@gmail.com';
+const ADMIN_EMAIL = 'contact@job-ici.com';
 
 type Conversation = {
   id: string;

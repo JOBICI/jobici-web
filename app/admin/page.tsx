@@ -10,7 +10,7 @@ import CreerProForm from '@/components/CreerProForm';
 import ValiderDocumentsPanel from '@/components/ValiderDocumentsPanel';
 import UtilisateursPanel from '@/components/UtilisateursPanel';
 
-const ADMIN_EMAIL = 'dylan.2005.redon@gmail.com';
+const ADMIN_EMAIL = 'contact@job-ici.com';
 
 type Candidature = {
   id: string;

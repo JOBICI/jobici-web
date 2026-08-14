@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 
-const ADMIN_EMAIL = 'dylan.2005.redon@gmail.com';
+const ADMIN_EMAIL = 'contact@job-ici.com';
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
