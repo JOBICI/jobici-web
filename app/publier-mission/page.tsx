@@ -76,19 +76,13 @@ export default function PublierMissionPage() {
   const tarifBas  = d > 0 ? Math.max(FLOOR, Math.round(d * 15)) : null;
   const tarifHaut = d > 0 ? Math.max(20,    Math.round(d * 22)) : null;
 
-  // ── Commission : 15% particulier (CESU) / 20% pro (avec dégressif multi-mois) ──
+  // La commission Jobici (15% particulier / 20%+15% ou 15% pro selon contrat) n'est
+  // plus calculée ici : elle est déterminée après acceptation d'un candidat, et
+  // facturée séparément par Jobici (pas de paiement dans l'app).
   const isPro = userProfile?.statut === 'employer' || userProfile?.statut === 'autoentrepreneur';
   const tarifNum = parseFloat(tarif) || 0;
   const moisNum = isPro ? (parseInt(dureeMois) || 0) : 0;
   const boostCost = BOOSTS.find(b => b.id === boost)?.prix || 0;
-
-  // Pour les pros avec durée en mois : mois 1 à 20%, mois suivants à 15%
-  const commissionMois1 = isPro && moisNum > 0 ? Math.round(tarifNum * 0.20 * 100) / 100 : 0;
-  const commissionAutresMois = isPro && moisNum > 1 ? Math.round(tarifNum * 0.15 * (moisNum - 1) * 100) / 100 : 0;
-  const commissionMontant = isPro && moisNum > 0
-    ? Math.round((commissionMois1 + commissionAutresMois) * 100) / 100
-    : Math.round(tarifNum * (isPro ? 0.20 : 0.15) * 100) / 100;
-  const coutTotal = Math.round((tarifNum * Math.max(moisNum, 1) + commissionMontant + boostCost) * 100) / 100;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -105,8 +99,6 @@ export default function PublierMissionPage() {
 
     setLoading(true);
     setError('');
-
-    const isParticulier = userProfile?.statut === 'particulier';
 
     const missionData = {
       employeur_id: user.id,
@@ -127,29 +119,19 @@ export default function PublierMissionPage() {
       apres_22h: apres22h,
       implique_alcool: impliqueAlcool,
       conduite_engin: conduiteEngin,
-      ...(isPro && moisNum > 0 && { duree_mois: moisNum, commission_totale: commissionMontant }),
+      ...(isPro && moisNum > 0 && { duree_mois: moisNum }),
     };
 
     const res = await fetch('/api/missions/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        missionData,
-        isParticulier,
-        coutTotal,
-        userEmail: user.email,
-      }),
+      body: JSON.stringify({ missionData }),
     });
 
     const data = await res.json();
     setLoading(false);
 
     if (data.error) { setError(data.error); return; }
-
-    if (isParticulier && data.url) {
-      window.location.href = data.url;
-      return;
-    }
 
     alert('✅ Mission publiée avec succès !');
     router.push('/missions');
@@ -375,7 +357,7 @@ export default function PublierMissionPage() {
               )}
             </div>
 
-            {/* ═══ RÉCAPITULATIF COÛT ═══ */}
+            {/* ═══ RÉCAPITULATIF ═══ */}
             <div style={{ background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: 12, padding: 18, marginTop: 24 }}>
               <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)', marginBottom: 12 }}>
                 💰 Récapitulatif
@@ -385,37 +367,12 @@ export default function PublierMissionPage() {
                   <span style={{ color: 'var(--text-mid)' }}>Le travailleur reçoit (100% du tarif)</span>
                   <span style={{ fontWeight: 700, color: 'var(--navy)' }}>{tarifNum || 0}€</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-mid)' }}>
-                    Commission Jobici ({!isPro ? '15%, mandat CESU' : moisNum > 0 ? '20% M1 + 15% suivants HT' : '20% HT'})
-                  </span>
-                  <span style={{ fontWeight: 700, color: 'var(--navy)' }}>{commissionMontant}€</span>
-                </div>
-                {isPro && moisNum > 0 && (
-                  <div style={{ paddingLeft: 12, borderLeft: '2px solid var(--border)', marginLeft: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)' }}>
-                      <span>Mois 1 (20%)</span>
-                      <span>{commissionMois1}€</span>
-                    </div>
-                    {moisNum > 1 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)' }}>
-                        <span>Mois 2{moisNum > 2 ? ` à ${moisNum}` : ''} (15% × {moisNum - 1})</span>
-                        <span>{commissionAutresMois}€</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {boostCost > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-mid)' }}>Boost annonce</span>
-                    <span style={{ fontWeight: 700, color: 'var(--navy)' }}>{boostCost}€</span>
-                  </div>
-                )}
-                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4, display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontWeight: 800, color: 'var(--navy)' }}>Coût total pour vous</span>
-                  <span style={{ fontWeight: 900, color: 'var(--teal-dark)', fontSize: 16 }}>{coutTotal}€</span>
-                </div>
               </div>
+              <p style={{ fontSize: 12, color: 'var(--text-mid)', marginTop: 12, lineHeight: 1.5 }}>
+                La publication est gratuite. La commission Jobici
+                ({!isPro ? '15%, mandat CESU' : '20% le 1er mois puis 15%, ou 15% si vous gérez vous-même le contrat'})
+                sera calculée et facturée une fois que vous aurez accepté un candidat.
+              </p>
               {!isPro && (
                 <p style={{ fontSize: 11, color: 'var(--teal-dark)', marginTop: 10, lineHeight: 1.5 }}>
                   ✨ En tant que particulier, vous bénéficiez de <strong>50% de crédit d'impôt</strong> sur le tarif versé au travailleur (Services à la Personne).

@@ -19,7 +19,7 @@ type Candidature = {
   message: string | null;
   mission_id: string;
   travailleur_id: string;
-  mission: { titre: string; ville: string; tarif: number; duree_mois: number | null; commission_totale: number | null; employeur_id: string } | null;
+  mission: { titre: string; ville: string; tarif: number; duree_mois: number | null; commission_totale: number | null; avec_contrat: boolean | null; employeur_id: string } | null;
   travailleur: { id: string; nom: string; email_contact: string | null; est_verifie: boolean | null } | null;
   employeur: { id: string; nom: string; email_contact: string | null } | null;
   conversation_id: string | null;
@@ -70,7 +70,7 @@ export default function AdminPage() {
     // Enrichir avec mission, travailleur, employeur
     const enriched: Candidature[] = await Promise.all(data.map(async (c) => {
       const [{ data: mission }, { data: travailleur }] = await Promise.all([
-        supabase.from('missions').select('titre, ville, tarif, duree_mois, commission_totale, employeur_id').eq('id', c.mission_id).single(),
+        supabase.from('missions').select('titre, ville, tarif, duree_mois, commission_totale, avec_contrat, employeur_id').eq('id', c.mission_id).single(),
         supabase.from('profiles').select('id, nom, email_contact, est_verifie').eq('id', c.travailleur_id).single(),
       ]);
 
@@ -329,12 +329,13 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {c.mission?.commission_totale && (
+                {c.mission?.commission_totale != null && (
                   <div style={{ background: 'var(--teal-light)', border: '1px solid var(--teal-border)', borderRadius: 10, padding: '10px 14px', marginBottom: 16 }}>
                     <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal-dark)' }}>
                       💰 Commission Jobici : <strong>{c.mission.commission_totale}€ HT</strong>
                       {c.mission.duree_mois && ` sur ${c.mission.duree_mois} mois`}
                       {c.mission.tarif && ` · ${c.mission.tarif}€/mois`}
+                      {' · '}{c.mission.avec_contrat ? '📝 Avec contrat Jobici' : c.mission.duree_mois ? '💼 Sans contrat' : '🏠 Mandat CESU'}
                     </p>
                   </div>
                 )}

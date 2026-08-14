@@ -381,39 +381,51 @@ function MessagesPageInner() {
             ) : messages.map(m => {
               const isMine = m.auteur_id === user.id;
               const isDoc = m.type === 'document';
+              // Couleur par rôle réel (employeur/travailleur), visible de tous — pas
+              // seulement de l'admin — pour repérer qui a envoyé quoi d'un coup d'œil.
+              // L'alignement reste basé sur "mien/autre" pour les participants ; pour
+              // l'admin (qui n'est ni l'un ni l'autre), il suit le rôle.
+              const estMsgEmployeur = m.auteur_id === activeConv.employeur_id;
+              const rightAlign = isAdmin ? estMsgEmployeur : isMine;
+              const roleColor = estMsgEmployeur ? 'var(--gold)' : 'var(--blue)';
+              const roleBg = estMsgEmployeur ? 'rgba(201,168,76,0.14)' : 'rgba(59,130,246,0.10)';
+              const senderLabel = isAdmin && (
+                <p style={{ fontSize: 10, fontWeight: 800, color: roleColor, margin: '0 2px 3px', textAlign: rightAlign ? 'right' : 'left' }}>
+                  {estMsgEmployeur ? `💼 ${activeConv.employeur?.nom || 'Employeur'}` : `👷 ${activeConv.travailleur?.nom || 'Travailleur'}`}
+                </p>
+              );
 
               if (m.type === 'offre') {
                 return (
-                  <div key={m.id} style={{
-                    alignSelf: isMine ? 'flex-end' : 'flex-start', maxWidth: '75%',
-                    background: 'white', border: '1.5px solid var(--teal)', borderRadius: 16,
-                    padding: '12px 16px',
-                  }}>
-                    <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: 'var(--teal-dark, #0a8a7a)' }}>
-                      💰 OFFRE DE NÉGOCIATION
-                    </p>
-                    <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', margin: '6px 0' }}>
-                      {m.offre_prix} €
-                    </p>
-                    {m.offre_statut === 'en_attente' && !isMine && (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                        <button onClick={() => repondreOffre(m.id, true)}
-                          style={{ background: 'var(--teal)', color: 'var(--navy)', border: 'none', borderRadius: 8, padding: '7px 14px', fontWeight: 800, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                          Accepter
-                        </button>
-                        <button onClick={() => repondreOffre(m.id, false)}
-                          style={{ background: 'transparent', color: 'var(--urgent)', border: '1px solid var(--urgent)', borderRadius: 8, padding: '7px 14px', fontWeight: 800, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                          Refuser
-                        </button>
-                      </div>
-                    )}
-                    {m.offre_statut === 'acceptee' && (
-                      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal-dark, #0a8a7a)', marginTop: 6 }}>✅ Offre acceptée</p>
-                    )}
-                    {m.offre_statut === 'refusee' && (
-                      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--urgent)', marginTop: 6 }}>❌ Offre refusée</p>
-                    )}
-                    <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>{formatTime(m.created_at)}</p>
+                  <div key={m.id} style={{ alignSelf: rightAlign ? 'flex-end' : 'flex-start', maxWidth: '75%' }}>
+                    {senderLabel}
+                    <div style={{ background: roleBg, border: `1.5px solid ${roleColor}`, borderRadius: 16, padding: '12px 16px' }}>
+                      <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: 'var(--teal-dark, #0a8a7a)' }}>
+                        💰 OFFRE DE NÉGOCIATION
+                      </p>
+                      <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', margin: '6px 0' }}>
+                        {m.offre_prix} €
+                      </p>
+                      {m.offre_statut === 'en_attente' && !isMine && !isAdmin && (
+                        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                          <button onClick={() => repondreOffre(m.id, true)}
+                            style={{ background: 'var(--teal)', color: 'var(--navy)', border: 'none', borderRadius: 8, padding: '7px 14px', fontWeight: 800, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                            Accepter
+                          </button>
+                          <button onClick={() => repondreOffre(m.id, false)}
+                            style={{ background: 'transparent', color: 'var(--urgent)', border: '1px solid var(--urgent)', borderRadius: 8, padding: '7px 14px', fontWeight: 800, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                            Refuser
+                          </button>
+                        </div>
+                      )}
+                      {m.offre_statut === 'acceptee' && (
+                        <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal-dark, #0a8a7a)', marginTop: 6 }}>✅ Offre acceptée</p>
+                      )}
+                      {m.offre_statut === 'refusee' && (
+                        <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--urgent)', marginTop: 6 }}>❌ Offre refusée</p>
+                      )}
+                      <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>{formatTime(m.created_at)}</p>
+                    </div>
                   </div>
                 );
               }
@@ -421,15 +433,16 @@ function MessagesPageInner() {
               let docName = 'Document';
               if (isDoc) { try { docName = JSON.parse(m.texte)?.name || 'Document'; } catch { /* ignore */ } }
               return (
-                <div key={m.id} style={{ alignSelf: isMine ? 'flex-end' : 'flex-start', maxWidth: '75%' }}>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', flexDirection: isMine ? 'row-reverse' : 'row' }}>
+                <div key={m.id} style={{ alignSelf: rightAlign ? 'flex-end' : 'flex-start', maxWidth: '75%' }}>
+                  {senderLabel}
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', flexDirection: rightAlign ? 'row-reverse' : 'row' }}>
                     <div
                       onClick={isDoc ? () => ouvrirDocument(m.texte) : undefined}
                       style={{
-                        background: isMine ? 'var(--teal)' : 'white',
-                        color: isMine ? 'var(--navy)' : 'var(--text-dark)',
+                        background: roleBg,
+                        color: 'var(--text-dark)',
                         padding: '10px 14px', borderRadius: 16,
-                        border: isMine ? 'none' : '1px solid var(--border)',
+                        border: `1.5px solid ${roleColor}`,
                         fontSize: 14, lineHeight: 1.4,
                         whiteSpace: 'pre-wrap',
                         cursor: isDoc ? 'pointer' : 'default',
@@ -448,7 +461,7 @@ function MessagesPageInner() {
                       </button>
                     )}
                   </div>
-                  <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3, textAlign: isMine ? 'right' : 'left' }}>
+                  <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3, textAlign: rightAlign ? 'right' : 'left' }}>
                     {formatTime(m.created_at)}
                   </p>
                 </div>
