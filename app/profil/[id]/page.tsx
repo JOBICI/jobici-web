@@ -33,6 +33,18 @@ const STATUT_LABELS: Record<string, string> = {
   employer: '💼 Professionnel',
 };
 
+const ADMIN_EMAIL = 'contact@job-ici.com';
+
+type HistoriqueMission = {
+  id: string;
+  titre: string;
+  ville: string | null;
+  tarif: number | null;
+  date: string;
+  autrePartieNom: string;
+  autrePartieEmail: string | null;
+};
+
 export default function PublicProfilePage() {
   const { id } = useParams<{ id: string }>();
   const { user, userProfile } = useAuth();
@@ -43,7 +55,9 @@ export default function PublicProfilePage() {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [historique, setHistorique] = useState<HistoriqueMission[]>([]);
 
+  const isAdmin = user?.email === ADMIN_EMAIL;
   const canPropose = user && user.id !== id && (userProfile?.statut === 'employer' || userProfile?.statut === 'particulier');
 
   useEffect(() => {
@@ -58,6 +72,37 @@ export default function PublicProfilePage() {
     }
     load();
   }, [id]);
+
+  // Historique des missions effectuées — réservé à l'admin (tarif + email du client).
+  useEffect(() => {
+    async function loadHistorique() {
+      if (!isAdmin || !id) { setHistorique([]); return; }
+      const { data } = await supabase
+        .from('candidatures')
+        .select('id, mission_id, travailleur_id, employeur_id, missions(titre, ville, tarif, created_at)')
+        .or(`travailleur_id.eq.${id},employeur_id.eq.${id}`)
+        .eq('statut', 'terminee');
+      if (!data) { setHistorique([]); return; }
+
+      const rows = await Promise.all(data.map(async (c) => {
+        const autrePartieId = c.travailleur_id === id ? c.employeur_id : c.travailleur_id;
+        const { data: autre } = await supabase
+          .from('profiles').select('nom, email_contact').eq('id', autrePartieId).maybeSingle();
+        const mission = Array.isArray(c.missions) ? c.missions[0] : c.missions;
+        return {
+          id: c.id,
+          titre: mission?.titre ?? 'Mission',
+          ville: mission?.ville ?? null,
+          tarif: mission?.tarif ?? null,
+          date: mission?.created_at ?? '',
+          autrePartieNom: autre?.nom ?? '—',
+          autrePartieEmail: autre?.email_contact ?? null,
+        };
+      }));
+      setHistorique(rows);
+    }
+    loadHistorique();
+  }, [isAdmin, id]);
 
   async function sendMission() {
     if (!user || !message.trim() || !profile) return;
@@ -196,6 +241,25 @@ export default function PublicProfilePage() {
                   <span>✅ <strong style={{ color: 'var(--teal-dark)' }}>{profile.nb_missions}</strong> mission{profile.nb_missions > 1 ? 's' : ''}</span>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Historique des missions — réservé à l'admin */}
+        {isAdmin && historique.length > 0 && (
+          <div style={{ background: 'white', borderRadius: 16, padding: 24, border: '1px solid var(--border)', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', marginBottom: 12 }}>🗂️ Historique (admin)</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {historique.map(h => (
+                <div key={h.id} style={{ background: 'var(--cream)', borderRadius: 10, padding: '12px 14px' }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>
+                    {h.titre}{h.ville ? ` · ${h.ville}` : ''}{h.date ? ` · ${new Date(h.date).toLocaleDateString('fr-FR')}` : ''}
+                  </p>
+                  <p style={{ fontSize: 12, color: 'var(--text-mid)', marginTop: 2 }}>
+                    💰 {h.tarif != null ? `${h.tarif}€` : '—'} · {h.autrePartieNom}{h.autrePartieEmail ? ` (${h.autrePartieEmail})` : ''}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         )}

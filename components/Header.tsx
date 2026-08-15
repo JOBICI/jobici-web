@@ -1,18 +1,55 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 const ADMIN_EMAIL = 'contact@job-ici.com';
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [nbNonLu, setNbNonLu] = useState(0);
   const { user, userProfile, logout } = useAuth();
 
   const initial = (userProfile?.nom || user?.email || '?').charAt(0).toUpperCase();
   const isAdmin = user?.email === ADMIN_EMAIL;
+
+  const loadNonLu = useCallback(async () => {
+    if (!user || isAdmin) { setNbNonLu(0); return; }
+    const { data } = await supabase
+      .from('conversations')
+      .select('id, employeur_id, travailleur_id, lu_employeur_at, lu_travailleur_at')
+      .or(`travailleur_id.eq.${user.id},employeur_id.eq.${user.id}`);
+    if (!data) return;
+
+    const results = await Promise.all(data.map(async (conv) => {
+      const { data: msgs } = await supabase
+        .from('messages')
+        .select('auteur_id, created_at')
+        .eq('conversation_id', conv.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const dernierMsg = msgs?.[0];
+      if (!dernierMsg || dernierMsg.auteur_id === user.id) return false;
+      const monLuAt = user.id === conv.employeur_id ? conv.lu_employeur_at : conv.lu_travailleur_at;
+      return !monLuAt || new Date(dernierMsg.created_at) > new Date(monLuAt);
+    }));
+    setNbNonLu(results.filter(Boolean).length);
+  }, [user, isAdmin]);
+
+  useEffect(() => { loadNonLu(); }, [loadNonLu]);
+
+  useEffect(() => {
+    if (!user || isAdmin) return;
+    const channel = supabase
+      .channel('header-conv-count')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => loadNonLu())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => loadNonLu())
+      .subscribe();
+    return () => { channel.unsubscribe(); };
+  }, [user, isAdmin, loadNonLu]);
 
   return (
     <header className="header">
@@ -68,8 +105,9 @@ export default function Header() {
                   <Link href="/classement" style={dropdownItemStyle} onClick={() => setProfileOpen(false)}>
                     🏆 Classement
                   </Link>
-                  <Link href="/messages" style={dropdownItemStyle} onClick={() => setProfileOpen(false)}>
-                    💬 Messages
+                  <Link href="/messages" style={{ ...dropdownItemStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={() => setProfileOpen(false)}>
+                    <span>💬 Messages</span>
+                    {nbNonLu > 0 && <span style={badgeStyle}>{nbNonLu}</span>}
                   </Link>
                   <Link href="/publier-mission" style={dropdownItemStyle} onClick={() => setProfileOpen(false)}>
                     📋 Publier une mission
@@ -118,7 +156,10 @@ export default function Header() {
             <>
               <Link href="/profil" onClick={() => setMenuOpen(false)}>👤 Mon profil</Link>
               <Link href="/classement" onClick={() => setMenuOpen(false)}>🏆 Classement</Link>
-              <Link href="/messages" onClick={() => setMenuOpen(false)}>💬 Messages</Link>
+              <Link href="/messages" onClick={() => setMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                💬 Messages
+                {nbNonLu > 0 && <span style={badgeStyle}>{nbNonLu}</span>}
+              </Link>
               <Link href="/publier-mission" onClick={() => setMenuOpen(false)}>📋 Publier une mission</Link>
               {isAdmin && (
                 <Link href="/admin" onClick={() => setMenuOpen(false)}>🛠️ Administration</Link>
@@ -145,4 +186,10 @@ export default function Header() {
 const dropdownItemStyle: React.CSSProperties = {
   display: 'block', padding: '10px 14px', fontSize: 13, fontWeight: 600,
   color: 'var(--text-dark)', borderRadius: 8, textDecoration: 'none',
+};
+
+const badgeStyle: React.CSSProperties = {
+  background: 'var(--urgent)', color: 'white', borderRadius: 999,
+  minWidth: 18, height: 18, fontSize: 10, fontWeight: 800,
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px',
 };

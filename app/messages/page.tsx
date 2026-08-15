@@ -23,6 +23,9 @@ type Conversation = {
   employeur?: { nom: string; avatar_lettre: string };
   derniere_message?: string;
   derniere_message_date?: string;
+  non_lu?: boolean;
+  lu_employeur_at?: string | null;
+  lu_travailleur_at?: string | null;
 };
 
 type Message = {
@@ -76,6 +79,13 @@ function MessagesPageInner() {
   const [detailReport, setDetailReport] = useState('');
   const [reportSending, setReportSending] = useState(false);
   const [blocageEnCours, setBlocageEnCours] = useState(false);
+  const [candId, setCandId] = useState<string | null>(null);
+  const [candStatut, setCandStatut] = useState<string | null>(null);
+  const [dejaNote, setDejaNote] = useState(false);
+  const [showRating, setShowRating] = useState(false);
+  const [ratingNote, setRatingNote] = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
+  const [finishing, setFinishing] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -114,16 +124,21 @@ function MessagesPageInner() {
         data.map(async (conv: any) => {
           const { data: msg } = await supabase
             .from('messages')
-            .select('texte, created_at, type')
+            .select('texte, created_at, type, auteur_id')
             .eq('conversation_id', conv.id)
             .order('created_at', { ascending: false })
             .limit(1);
+          const dernierMsg = msg?.[0];
+          const monLuAt = user.id === conv.employeur_id ? conv.lu_employeur_at : conv.lu_travailleur_at;
+          const nonLu = !isAdmin && !!dernierMsg && dernierMsg.auteur_id !== user.id
+            && (!monLuAt || new Date(dernierMsg.created_at) > new Date(monLuAt));
           return {
             ...conv,
-            derniere_message: msg?.[0]
-              ? (msg[0].type === 'document' ? '📄 Document' : msg[0].texte)
+            derniere_message: dernierMsg
+              ? (dernierMsg.type === 'document' ? '📄 Document' : dernierMsg.texte)
               : 'Nouvelle conversation',
-            derniere_message_date: msg?.[0]?.created_at || conv.created_at,
+            derniere_message_date: dernierMsg?.created_at || conv.created_at,
+            non_lu: nonLu,
           };
         })
       );
@@ -144,6 +159,53 @@ function MessagesPageInner() {
   }, [convParam, conversations]);
 
   useEffect(() => {
+    if (!activeConv || !user) { setCandId(null); setCandStatut(null); setDejaNote(false); return; }
+
+    async function loadCandidature() {
+      const { data } = await supabase
+        .from('candidatures')
+        .select('id, statut')
+        .eq('mission_id', activeConv!.mission_id)
+        .eq('travailleur_id', activeConv!.travailleur_id)
+        .eq('employeur_id', activeConv!.employeur_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!data) { setCandId(null); setCandStatut(null); setDejaNote(false); return; }
+      setCandId(data.id);
+      setCandStatut(data.statut);
+      const { data: avisExistant } = await supabase
+        .from('avis')
+        .select('id')
+        .eq('mission_id', activeConv!.mission_id)
+        .eq('auteur_id', user!.id)
+        .maybeSingle();
+      setDejaNote(!!avisExistant);
+    }
+    loadCandidature();
+  }, [activeConv, user]);
+
+  async function submitRating() {
+    if (!candId) return;
+    if (ratingNote < 1) { alert('Choisissez une note de 1 à 5 étoiles.'); return; }
+    setFinishing(true);
+    const { data, error } = await supabase.functions.invoke('swift-endpoint', {
+      body: { candidature_id: candId, event: 'mission_terminee', note: ratingNote, commentaire: ratingComment.trim() },
+    });
+    setFinishing(false);
+    if (error || (data as { error?: string })?.error) {
+      alert("La mission n'a pas pu être finalisée. Réessayez.");
+      return;
+    }
+    setCandStatut('terminee');
+    setDejaNote(true);
+    setShowRating(false);
+    setRatingNote(0);
+    setRatingComment('');
+    alert(`🏁 Note de ${ratingNote}/5 enregistrée. Merci !`);
+  }
+
+  useEffect(() => {
     if (!activeConv) return;
 
     async function loadMessages() {
@@ -156,6 +218,12 @@ function MessagesPageInner() {
       setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 100);
     }
     loadMessages();
+
+    // Marque la conversation comme lue (seulement pour un vrai participant, pas l'admin).
+    if (user?.id === activeConv.employeur_id || user?.id === activeConv.travailleur_id) {
+      const col = user.id === activeConv.employeur_id ? 'lu_employeur_at' : 'lu_travailleur_at';
+      supabase.from('conversations').update({ [col]: new Date().toISOString() }).eq('id', activeConv.id).then(() => {});
+    }
 
     const channel = supabase
       .channel(`messages:${activeConv.id}`)
@@ -306,6 +374,7 @@ function MessagesPageInner() {
   if (activeConv) {
     const other = getOther(activeConv);
     const otherId = getOtherId(activeConv);
+    const isEmployeur = activeConv.employeur_id === user.id;
     const blockedByMe = blocages.bloquesParMoi.includes(otherId);
     const blockedMe = blocages.mOntBloque.includes(otherId);
     const conversationBloquee = blockedByMe || blockedMe;
@@ -332,6 +401,14 @@ function MessagesPageInner() {
                 {activeConv.missions?.emoji} {activeConv.missions?.titre} · {activeConv.missions?.tarif}€
               </p>
             </div>
+            {!isAdmin && (candStatut === 'acceptee' || candStatut === 'terminee') && !dejaNote ? (
+              <button onClick={() => setShowRating(true)} disabled={finishing}
+                style={{ background: 'transparent', border: 'none', cursor: finishing ? 'not-allowed' : 'pointer', color: 'var(--teal-dark, #088B78)', fontSize: 12, fontWeight: 800, fontFamily: 'inherit', flexShrink: 0 }}>
+                {finishing ? '…' : '🏁 Terminée'}
+              </button>
+            ) : candStatut === 'terminee' ? (
+              <span style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>✅ Réalisée</span>
+            ) : null}
             {!isAdmin && (
               <div style={{ position: 'relative' }}>
                 <button onClick={() => setShowMenu(v => !v)} title="Options"
@@ -544,6 +621,49 @@ function MessagesPageInner() {
             </div>
           </div>
         )}
+
+        {showRating && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,45,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, padding: 16 }}>
+            <div style={{ background: 'white', borderRadius: 16, padding: 24, maxWidth: 400, width: '100%' }}>
+              <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>
+                Noter {other?.nom || 'cette personne'}
+              </h3>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
+                {isEmployeur ? 'Votre note influe sur ses points au classement.' : "Comment s'est passée la mission avec ce professionnel/particulier ?"}
+              </p>
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 16 }}>
+                {[1, 2, 3, 4, 5].map(n => (
+                  <button key={n} onClick={() => setRatingNote(n)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 32, padding: 0, lineHeight: 1, color: n <= ratingNote ? '#F59E0B' : 'var(--border)' }}>
+                    ★
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={ratingComment}
+                onChange={e => setRatingComment(e.target.value)}
+                placeholder="Un commentaire (optionnel)"
+                rows={3}
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--border)', borderRadius: 10, fontSize: 13, outline: 'none', fontFamily: 'inherit', resize: 'vertical', marginBottom: 16 }}
+              />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => { setShowRating(false); setRatingNote(0); setRatingComment(''); }}
+                  style={{ flex: 1, padding: '12px 0', borderRadius: 999, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-dark)', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={submitRating}
+                  disabled={finishing}
+                  style={{ flex: 1, padding: '12px 0', borderRadius: 999, border: 'none', background: 'var(--teal)', color: 'var(--navy)', fontWeight: 800, fontSize: 14, cursor: finishing ? 'not-allowed' : 'pointer', opacity: finishing ? 0.6 : 1, fontFamily: 'inherit' }}
+                >
+                  {finishing ? '…' : 'Valider'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </>
     );
   }
@@ -592,12 +712,17 @@ function MessagesPageInner() {
                     fontFamily: 'inherit',
                   }}
                 >
-                  <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'var(--cream)', border: '1px solid var(--border)', color: 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, flexShrink: 0 }}>
-                    {other?.avatar_lettre || (other?.nom || '?').charAt(0).toUpperCase()}
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'var(--cream)', border: '1px solid var(--border)', color: 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800 }}>
+                      {other?.avatar_lettre || (other?.nom || '?').charAt(0).toUpperCase()}
+                    </div>
+                    {conv.non_lu && (
+                      <span style={{ position: 'absolute', top: -2, right: -2, width: 13, height: 13, borderRadius: '50%', background: 'var(--urgent)', border: '2px solid white' }} />
+                    )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <span style={{ fontSize: 15, fontWeight: conv.non_lu ? 900 : 800, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {isAdmin ? `${conv.travailleur?.nom || '?'} ↔ ${conv.employeur?.nom || '?'}` : (other?.nom || 'Utilisateur')}
                       </span>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>

@@ -100,9 +100,16 @@ export default function AdminPage() {
     setLoading(false);
   }
 
-  async function changerStatut(id: string, statut: string) {
-    await supabase.from('candidatures').update({ statut }).eq('id', id);
-    setCandidatures(prev => prev.map(c => c.id === id ? { ...c, statut } : c));
+  async function changerStatut(c: Candidature, statut: string) {
+    await supabase.from('candidatures').update({ statut }).eq('id', c.id);
+    // La mission ne doit plus apparaître dans les missions disponibles une fois
+    // pourvue, et redevient disponible si on annule l'acceptation.
+    if (statut === 'acceptee') {
+      await supabase.from('missions').update({ statut: 'pourvue' }).eq('id', c.mission_id);
+    } else if (statut === 'en_attente' || statut === 'refusee') {
+      await supabase.from('missions').update({ statut: 'active' }).eq('id', c.mission_id);
+    }
+    setCandidatures(prev => prev.map(x => x.id === c.id ? { ...x, statut } : x));
     showToast('success', `Statut mis à jour : ${STATUT_LABELS[statut]}`);
   }
 
@@ -172,7 +179,7 @@ export default function AdminPage() {
       showToast('error', "Erreur lors de l'envoi : " + error.message);
     } else {
       showToast('success', '✅ Contrat envoyé dans la conversation !');
-      await changerStatut(contratModal.id, 'acceptee');
+      await changerStatut(contratModal, 'acceptee');
     }
   }
 
@@ -355,12 +362,12 @@ export default function AdminPage() {
                             showToast('error', "Impossible d'accepter : la carte d'identité de ce travailleur n'a pas encore été validée (onglet Documents à valider).");
                             return;
                           }
-                          changerStatut(c.id, 'acceptee');
+                          changerStatut(c, 'acceptee');
                         }}
                         style={{ ...btnStyle, background: '#10B981', color: 'white', opacity: c.travailleur?.est_verifie ? 1 : 0.5 }}>
                         {c.travailleur?.est_verifie ? '✅ Accepter' : '🔒 Accepter (documents non vérifiés)'}
                       </button>
-                      <button onClick={() => changerStatut(c.id, 'refusee')}
+                      <button onClick={() => changerStatut(c, 'refusee')}
                         style={{ ...btnStyle, background: '#EF4444', color: 'white' }}>
                         ❌ Refuser
                       </button>
@@ -376,7 +383,7 @@ export default function AdminPage() {
                     </button>
                   )}
                   {c.statut !== 'en_attente' && (
-                    <button onClick={() => changerStatut(c.id, 'en_attente')}
+                    <button onClick={() => changerStatut(c, 'en_attente')}
                       style={{ ...btnStyle, background: 'var(--cream)', color: 'var(--text-dark)', border: '1px solid var(--border)' }}>
                       Remettre en attente
                     </button>
