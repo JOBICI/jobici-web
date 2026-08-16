@@ -55,11 +55,19 @@ export default function CGVPage() {
             réalisée via la plateforme. Une facture détaillée est émise automatiquement.
           </p>
 
-          <h3 style={h3Style}>2.4 Abonnement SOS Urgence Pro</h3>
+          <h3 style={h3Style}>2.4 Abonnements</h3>
           <p style={pStyle}>
-            Service optionnel à <strong>9,99 € HT/mois</strong> (11,99 € TTC) pour les Professionnels
-            souhaitant mettre en avant leurs annonces urgentes. Sans engagement de durée, résiliable
+            Service optionnel <strong>SOS Urgence Pro</strong> à <strong>9,99 € HT/mois</strong>
+            (11,99 € TTC) pour les Professionnels souhaitant mettre en avant leurs annonces urgentes,
+            ainsi que d'autres formules d'abonnement proposées ponctuellement sur la plateforme
+            (visibilité, accès anticipé aux missions, etc.). Sans engagement de durée, résiliables
             à tout moment.
+          </p>
+          <p style={pStyle}>
+            <strong>Le tarif des abonnements est susceptible d'évoluer.</strong> Toute modification est
+            communiquée par email aux abonnés concernés au moins 30 jours avant son entrée en vigueur
+            (voir Article 11). L'abonné peut résilier sans frais avant la date d'application du nouveau
+            tarif ; à défaut de résiliation, la poursuite de l'abonnement vaut acceptation du nouveau tarif.
           </p>
 
           <h2 style={h2Style}>Article 3 — Modalités de paiement</h2>

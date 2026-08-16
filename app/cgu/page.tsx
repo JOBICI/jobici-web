@@ -81,15 +81,31 @@ export default function CGUPage() {
           </p>
 
           <h2 style={h2Style}>Article 4 — Comportements interdits</h2>
+          <h3 style={h3Style}>4.1 Interdictions générales</h3>
           <p style={pStyle}>Il est strictement interdit aux Utilisateurs de :</p>
           <ul style={ulStyle}>
             <li>Publier des missions contraires à la loi</li>
             <li>Diffuser des contenus haineux, discriminatoires, violents ou pornographiques</li>
             <li>Usurper l'identité d'un tiers</li>
-            <li>Contourner les paiements via la plateforme</li>
             <li>Recopier ou diffuser le contenu de Jobici sans autorisation</li>
             <li>Utiliser des moyens automatisés (bots) pour interagir avec la plateforme</li>
             <li>Spammer ou démarcher commercialement les autres utilisateurs</li>
+          </ul>
+
+          <h3 style={h3Style}>4.2 Non-contournement de la plateforme</h3>
+          <p style={pStyle}>
+            Jobici assure la mise en relation, la vérification d'identité, et selon les cas la gestion
+            du mandat CESU, des contrats et de la facturation entre les Utilisateurs. Il est strictement
+            interdit d'utiliser Jobici pour entrer en contact avec un autre Utilisateur puis de convenir,
+            réaliser ou faire réaliser une prestation <strong>en dehors de la plateforme</strong> dans le
+            but d'éviter le paiement de la commission due à Jobici — que ce soit pour la mission ayant
+            permis la mise en relation ou pour toute mission ultérieure conclue avec la même personne.
+          </p>
+          <p style={pStyle}>En cas de contournement avéré, Jobici se réserve le droit :</p>
+          <ul style={ulStyle}>
+            <li>de suspendre ou résilier immédiatement le ou les comptes concernés (voir Article 11) ;</li>
+            <li>de réclamer, à titre de dommages et intérêts, une indemnité correspondant à la commission qui aurait dû être perçue sur la ou les prestations réalisées hors plateforme ;</li>
+            <li>d'engager toute action, y compris judiciaire, utile à la défense de ses intérêts.</li>
           </ul>
 
           <h2 style={h2Style}>Article 5 — Tarification</h2>
