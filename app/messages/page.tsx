@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { signalerUtilisateur, bloquerUtilisateur, debloquerUtilisateur, getRelationsBlocage, MOTIFS_SIGNALEMENT } from '@/lib/moderation';
+import { notifyMissionTerminee } from '@/lib/notifications';
 
 const ADMIN_EMAIL = 'contact@job-ici.com';
 
@@ -202,6 +203,11 @@ function MessagesPageInner() {
     setShowRating(false);
     setRatingNote(0);
     setRatingComment('');
+    // C'est l'employeur qui clôt la mission : le travailleur est notifié pour
+    // qu'il puisse noter le professionnel/particulier à son tour.
+    if (activeConv && activeConv.employeur_id === user?.id) {
+      notifyMissionTerminee(activeConv.travailleur_id, activeConv.missions?.titre || 'la mission').catch(() => {});
+    }
     alert(`🏁 Note de ${ratingNote}/5 enregistrée. Merci !`);
   }
 
@@ -401,10 +407,17 @@ function MessagesPageInner() {
                 {activeConv.missions?.emoji} {activeConv.missions?.titre} · {activeConv.missions?.tarif}€
               </p>
             </div>
-            {!isAdmin && (candStatut === 'acceptee' || candStatut === 'terminee') && !dejaNote ? (
+            {/* Seul l'employeur peut déclarer la mission terminée. Le travailleur ne
+                peut noter en retour qu'une fois que c'est fait. */}
+            {!isAdmin && isEmployeur && candStatut === 'acceptee' && !dejaNote ? (
               <button onClick={() => setShowRating(true)} disabled={finishing}
                 style={{ background: 'transparent', border: 'none', cursor: finishing ? 'not-allowed' : 'pointer', color: 'var(--teal-dark, #088B78)', fontSize: 12, fontWeight: 800, fontFamily: 'inherit', flexShrink: 0 }}>
                 {finishing ? '…' : '🏁 Terminée'}
+              </button>
+            ) : !isAdmin && candStatut === 'terminee' && !dejaNote ? (
+              <button onClick={() => setShowRating(true)} disabled={finishing}
+                style={{ background: 'transparent', border: 'none', cursor: finishing ? 'not-allowed' : 'pointer', color: 'var(--teal-dark, #088B78)', fontSize: 12, fontWeight: 800, fontFamily: 'inherit', flexShrink: 0 }}>
+                {finishing ? '…' : '⭐ Noter'}
               </button>
             ) : candStatut === 'terminee' ? (
               <span style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>✅ Réalisée</span>
