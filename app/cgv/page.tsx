@@ -60,8 +60,8 @@ export default function CGVPage() {
             Service optionnel <strong>SOS Urgence Pro</strong> à <strong>9,99 € HT/mois</strong>
             (11,99 € TTC) pour les Professionnels souhaitant mettre en avant leurs annonces urgentes,
             ainsi que d'autres formules d'abonnement proposées ponctuellement sur la plateforme
-            (visibilité, accès anticipé aux missions, etc.). Sans engagement de durée, résiliables
-            à tout moment.
+            (visibilité, accès anticipé aux missions, etc.). Engagement minimum de 3 mois, résiliables
+            ensuite.
           </p>
           <p style={pStyle}>
             <strong>Le tarif des abonnements est susceptible d'évoluer.</strong> Toute modification est
