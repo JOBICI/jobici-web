@@ -41,3 +41,21 @@ export async function notifyMissionTerminee(travailleurId: string, missionTitre:
     { type: 'mission_terminee', travailleurId }
   );
 }
+
+// ── Notifier d'un nouveau message ──
+export async function notifyNewMessage(destinataireId: string, expediteurNom: string, apercu: string) {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('push_token')
+    .eq('id', destinataireId)
+    .single();
+
+  if (!profile?.push_token) return;
+
+  await sendPushNotification(
+    profile.push_token,
+    `💬 ${expediteurNom}`,
+    apercu.length > 60 ? apercu.substring(0, 57) + '...' : apercu,
+    { type: 'message', destinataireId }
+  );
+}

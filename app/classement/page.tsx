@@ -6,6 +6,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { trouverOuCreerConversationDirecte, envoyerMessageDirect } from '@/lib/conversations';
+import { notifyNewMessage } from '@/lib/notifications';
 
 type ClassementUser = {
   id: string;
@@ -116,14 +118,16 @@ export default function ClassementPage() {
   async function sendMission() {
     if (!missionModal || !user || !missionMsg.trim()) return;
     setSending(true);
-    await supabase.from('messages').insert({
-      sender_id: user.id,
-      receiver_id: missionModal.id,
-      contenu: missionMsg.trim(),
-      created_at: new Date().toISOString(),
-      lu: false,
-    });
+    const { conversationId, error } = await trouverOuCreerConversationDirecte(user.id, missionModal.id);
+    if (error || !conversationId) {
+      setSending(false);
+      alert('❌ Impossible d\'envoyer le message : ' + (error || 'erreur inconnue'));
+      return;
+    }
+    const { error: msgError } = await envoyerMessageDirect(conversationId, user.id, missionMsg.trim());
     setSending(false);
+    if (msgError) { alert('❌ ' + msgError.message); return; }
+    notifyNewMessage(missionModal.id, userProfile?.nom || 'Quelqu\'un', missionMsg.trim()).catch(() => {});
     setSent(true);
     setMissionMsg('');
   }

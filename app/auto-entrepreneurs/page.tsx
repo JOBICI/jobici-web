@@ -6,15 +6,20 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import MaillageLinks from '@/components/MaillageLinks';
 import { supabase } from '@/lib/supabase';
+import { SUGGESTIONS_METIER } from '@/lib/metiers';
 
 type AutoProfile = {
   id: string;
   nom: string;
+  nom_commercial: string | null;
   ville: string;
   avatar_lettre: string;
   siret: string;
   metier: string | null;
   bio: string | null;
+  competences: string[] | null;
+  tarif_horaire: number | null;
+  disponible: boolean | null;
   note_moyenne: number | null;
   nb_missions: number | null;
   xp_total: number | null;
@@ -22,11 +27,7 @@ type AutoProfile = {
   featured: boolean; // a le pack visibilité actif
 };
 
-const METIERS = [
-  'Tous',
-  'Plomberie', 'Électricité', 'Menuiserie', 'Jardinage', 'Ménage',
-  'Peinture', 'Informatique', 'Livraison', 'Cours particuliers', 'Autre',
-];
+const FILTRES_RAPIDES = ['Tous', ...SUGGESTIONS_METIER.slice(0, 8)];
 
 export default function AutoEntrepreneursPage() {
   const [profiles, setProfiles] = useState<AutoProfile[]>([]);
@@ -36,27 +37,29 @@ export default function AutoEntrepreneursPage() {
 
   useEffect(() => {
     async function load() {
-      // Seuls les auto-entrepreneurs avec l'abonnement actif sont visibles
-      const { data: packs } = await supabase
-        .from('user_purchases')
-        .select('user_id')
-        .eq('offer_id', 'pack_visibilite_auto')
-        .eq('status', 'active');
-
-      if (!packs || packs.length === 0) { setLoading(false); return; }
-
-      const subscribedIds = packs.map((p: { user_id: string }) => p.user_id);
-
-      const { data: autos } = await supabase
-        .from('profiles')
-        .select('id, nom, ville, avatar_lettre, siret, metier, bio, note_moyenne, nb_missions, xp_total, niveau')
-        .eq('statut', 'autoentrepreneur')
-        .in('id', subscribedIds)
-        .order('xp_total', { ascending: false });
+      // Tous les auto-entrepreneurs sont visibles ; le pack visibilité ne fait
+      // que les mettre en avant (tri + badge), ce n'est plus une condition d'accès.
+      const [{ data: autos }, { data: packs }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, nom, nom_commercial, ville, avatar_lettre, siret, metier, bio, competences, tarif_horaire, disponible, note_moyenne, nb_missions, xp_total, niveau')
+          .eq('statut', 'autoentrepreneur'),
+        supabase
+          .from('user_purchases')
+          .select('user_id')
+          .eq('offer_id', 'pack_visibilite_auto')
+          .eq('status', 'active'),
+      ]);
 
       if (!autos) { setLoading(false); return; }
 
-      const enriched: AutoProfile[] = autos.map(a => ({ ...a, featured: true }));
+      const featuredIds = new Set((packs ?? []).map((p: { user_id: string }) => p.user_id));
+      const enriched: AutoProfile[] = autos
+        .map(a => ({ ...a, featured: featuredIds.has(a.id) }))
+        .sort((a, b) => {
+          if (a.featured !== b.featured) return a.featured ? -1 : 1;
+          return (b.note_moyenne || 0) - (a.note_moyenne || 0) || (b.xp_total || 0) - (a.xp_total || 0);
+        });
 
       setProfiles(enriched);
       setLoading(false);
@@ -66,7 +69,7 @@ export default function AutoEntrepreneursPage() {
 
   const filtered = profiles.filter(p => {
     const matchSearch = !search || p.nom.toLowerCase().includes(search.toLowerCase()) || (p.ville || '').toLowerCase().includes(search.toLowerCase());
-    const matchMetier = filtre === 'Tous' || p.metier === filtre;
+    const matchMetier = filtre === 'Tous' || (p.metier || '').toLowerCase().includes(filtre.toLowerCase());
     return matchSearch && matchMetier;
   });
 
@@ -100,7 +103,7 @@ export default function AutoEntrepreneursPage() {
             />
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {METIERS.map(m => (
+            {FILTRES_RAPIDES.map(m => (
               <button
                 key={m}
                 onClick={() => setFiltre(m)}
@@ -147,7 +150,8 @@ export default function AutoEntrepreneursPage() {
 }
 
 function ProfileCard({ profile: p }: { profile: AutoProfile }) {
-  const initial = (p.nom || '?').charAt(0).toUpperCase();
+  const displayName = p.nom_commercial?.trim() || p.nom;
+  const initial = (displayName || '?').charAt(0).toUpperCase();
   const stars = p.note_moyenne ? Math.round(p.note_moyenne) : null;
 
   return (
@@ -183,34 +187,54 @@ function ProfileCard({ profile: p }: { profile: AutoProfile }) {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {p.nom}
+              {displayName}
             </h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
               📍 {p.ville || 'Ville non renseignée'}
             </p>
-            {p.metier && (
-              <span style={{
-                display: 'inline-block', background: 'var(--cream)',
-                border: '1px solid var(--border)', color: 'var(--text-dark)',
-                padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
-              }}>
-                {p.metier}
-              </span>
-            )}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {p.metier && (
+                <span style={{
+                  display: 'inline-block', background: 'var(--cream)',
+                  border: '1px solid var(--border)', color: 'var(--text-dark)',
+                  padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                }}>
+                  {p.metier}
+                </span>
+              )}
+              {p.disponible !== false ? (
+                <span style={{ display: 'inline-block', background: 'var(--teal-light)', color: 'var(--teal-dark)', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
+                  ✅ Disponible
+                </span>
+              ) : (
+                <span style={{ display: 'inline-block', background: 'var(--cream)', color: 'var(--text-muted)', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
+                  ⏸️ Indisponible
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
         {p.bio && (
-          <p style={{ fontSize: 13, color: 'var(--text-mid)', lineHeight: 1.5, marginBottom: 14, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>
+          <p style={{ fontSize: 13, color: 'var(--text-mid)', lineHeight: 1.5, marginBottom: 10, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>
             {p.bio}
           </p>
         )}
 
+        {p.competences && p.competences.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+            {p.competences.slice(0, 3).map(tag => (
+              <span key={tag} style={{ background: 'var(--teal-light)', color: 'var(--teal-dark)', borderRadius: 999, padding: '2px 10px', fontSize: 11, fontWeight: 600 }}>{tag}</span>
+            ))}
+          </div>
+        )}
+
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-          <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--text-muted)' }}>
+          <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--text-muted)', flexWrap: 'wrap' }}>
             {stars && <span>{'⭐'.repeat(stars)} ({p.note_moyenne?.toFixed(1)})</span>}
             {p.nb_missions !== null && p.nb_missions > 0 && <span>✅ {p.nb_missions} mission{p.nb_missions > 1 ? 's' : ''}</span>}
             {p.xp_total !== null && p.xp_total > 0 && <span>⚡ {p.xp_total} XP</span>}
+            {p.tarif_horaire != null && <span>💶 {p.tarif_horaire}€/h</span>}
           </div>
           <span style={{
             background: p.featured ? 'var(--teal)' : 'var(--navy)',

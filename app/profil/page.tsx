@@ -7,14 +7,10 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { SUGGESTIONS_METIER } from '@/lib/metiers';
 
 const BUCKET = 'Document';
 const ADMIN_EMAIL = 'contact@job-ici.com';
-
-const METIERS = [
-  '', 'Plomberie', 'Électricité', 'Menuiserie', 'Jardinage', 'Ménage',
-  'Peinture', 'Informatique', 'Livraison', 'Cours particuliers', 'Autre',
-];
 
 export default function ProfilPage() {
   const router = useRouter();
@@ -37,9 +33,17 @@ export default function ProfilPage() {
 
   // Champs auto-entrepreneur
   const [metier, setMetier]             = useState('');
+  const [nomCommercial, setNomCommercial] = useState('');
   const [bio, setBio]                   = useState('');
+  const [competences, setCompetences]   = useState<string[]>([]);
+  const [nouveauTag, setNouveauTag]     = useState('');
+  const [tarifHoraire, setTarifHoraire] = useState('');
+  const [disponible, setDisponible]     = useState(true);
   const [emailContact, setEmailContact] = useState('');
   const [telephone, setTelephone]       = useState('');
+  const [realisations, setRealisations] = useState<string[]>([]);
+  const [uploadingRealisation, setUploadingRealisation] = useState(false);
+  const realisationInputRef = useRef<HTMLInputElement>(null);
 
   // Profil travailleur
   const [experiences, setExperiences] = useState('');
@@ -76,9 +80,14 @@ export default function ProfilPage() {
       setVille(userProfile.ville || '');
       setAdresse(userProfile.adresse || '');
       setMetier(userProfile.metier || '');
+      setNomCommercial(userProfile.nom_commercial || '');
       setBio(userProfile.bio || '');
+      setCompetences(Array.isArray(userProfile.competences) ? userProfile.competences : []);
+      setTarifHoraire(userProfile.tarif_horaire != null ? String(userProfile.tarif_horaire) : '');
+      setDisponible(userProfile.disponible !== false);
       setEmailContact(userProfile.email_contact || '');
       setTelephone(userProfile.telephone || '');
+      setRealisations(Array.isArray(userProfile.realisations) ? userProfile.realisations : []);
       setExperiences(userProfile.experiences || '');
       setCvUrl(userProfile.cv_url || null);
       setLettreUrl(userProfile.lettre_motivation_url || null);
@@ -121,7 +130,11 @@ export default function ProfilPage() {
 
     const autoFields = userProfile?.statut === 'autoentrepreneur' ? {
       metier: metier.trim(),
+      nom_commercial: nomCommercial.trim(),
       bio: bio.trim(),
+      competences,
+      tarif_horaire: tarifHoraire.trim() ? Number(tarifHoraire.replace(',', '.')) : null,
+      disponible,
       email_contact: emailContact.trim(),
       telephone: telephone.trim(),
     } : {};
@@ -209,6 +222,52 @@ export default function ProfilPage() {
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>, type: DocType) {
     const file = e.target.files?.[0];
     if (file) uploadDocument(file, type);
+  }
+
+  // Galerie de réalisations (auto-entrepreneur) : bucket public dédié, lecture
+  // publique, écriture limitée au propriétaire (voir migration realisations).
+  async function uploadRealisation(file: File) {
+    if (!user) return;
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!validTypes.includes(file.type)) { setUploadError('Format non supporté. Utilisez JPG ou PNG.'); return; }
+    if (file.size > 5 * 1024 * 1024) { setUploadError('Fichier trop volumineux. Maximum 5 MB.'); return; }
+
+    setUploadError('');
+    setUploadingRealisation(true);
+
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const path = `${user.id}/${Date.now()}.${ext}`;
+    const { error: uploadErr } = await supabase.storage.from('realisations').upload(path, file, { contentType: file.type });
+    if (uploadErr) {
+      setUploadError('Erreur upload : ' + uploadErr.message);
+      setUploadingRealisation(false);
+      return;
+    }
+
+    const { data: pub } = supabase.storage.from('realisations').getPublicUrl(path);
+    const next = [...realisations, pub.publicUrl];
+    const { error: updateErr } = await supabase.from('profiles').update({ realisations: next }).eq('id', user.id);
+    setUploadingRealisation(false);
+    if (updateErr) { setUploadError('Photo envoyée mais non enregistrée : ' + updateErr.message); return; }
+    setRealisations(next);
+    await refreshProfile();
+  }
+
+  function handleRealisationFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) uploadRealisation(file);
+    e.target.value = '';
+  }
+
+  async function supprimerRealisation(url: string) {
+    if (!user) return;
+    const path = url.split('/realisations/')[1];
+    const next = realisations.filter(r => r !== url);
+    const { error } = await supabase.from('profiles').update({ realisations: next }).eq('id', user.id);
+    if (error) { alert('❌ Erreur : ' + error.message); return; }
+    if (path) await supabase.storage.from('realisations').remove([path]);
+    setRealisations(next);
+    await refreshProfile();
   }
 
   // Documents d'identité : upload + insertion dans documents_identite, en attente
@@ -443,20 +502,42 @@ export default function ProfilPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
+              {/* Nom commercial */}
+              <div>
+                <label style={labelStyle}>Nom de la micro-entreprise</label>
+                {editing ? (
+                  <input
+                    type="text"
+                    value={nomCommercial}
+                    onChange={e => setNomCommercial(e.target.value)}
+                    placeholder="Ex : Dupont Services"
+                    style={inputStyle}
+                  />
+                ) : (
+                  <p style={valueStyle}>{nomCommercial || '—'}</p>
+                )}
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Si renseigné, c'est ce nom qui est mis en avant sur votre profil public (à la place de votre nom personnel).
+                </p>
+              </div>
+
               {/* Métier */}
               <div>
                 <label style={labelStyle}>Métier / Activité</label>
                 {editing ? (
-                  <select
-                    value={metier}
-                    onChange={e => setMetier(e.target.value)}
-                    style={inputStyle}
-                  >
-                    <option value="">— Sélectionner —</option>
-                    {METIERS.filter(m => m !== '').map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
+                  <>
+                    <input
+                      type="text"
+                      list="metiers-suggestions"
+                      value={metier}
+                      onChange={e => setMetier(e.target.value)}
+                      placeholder="Ex : Ménage, Marketing digital, Coaching sportif…"
+                      style={inputStyle}
+                    />
+                    <datalist id="metiers-suggestions">
+                      {SUGGESTIONS_METIER.map(m => <option key={m} value={m} />)}
+                    </datalist>
+                  </>
                 ) : (
                   <p style={valueStyle}>{metier || '—'}</p>
                 )}
@@ -508,6 +589,126 @@ export default function ProfilPage() {
                 ) : (
                   <p style={valueStyle}>{telephone || '—'}</p>
                 )}
+              </div>
+
+              {/* Compétences */}
+              <div>
+                <label style={labelStyle}>Compétences</label>
+                {editing ? (
+                  <>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input
+                        type="text"
+                        value={nouveauTag}
+                        onChange={e => setNouveauTag(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const tag = nouveauTag.trim();
+                            if (tag && !competences.includes(tag)) setCompetences([...competences, tag]);
+                            setNouveauTag('');
+                          }
+                        }}
+                        placeholder="Ajouter une compétence"
+                        style={inputStyle}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const tag = nouveauTag.trim();
+                          if (tag && !competences.includes(tag)) setCompetences([...competences, tag]);
+                          setNouveauTag('');
+                        }}
+                        style={{ ...btnSecondaryStyle, whiteSpace: 'nowrap' }}
+                      >
+                        Ajouter
+                      </button>
+                    </div>
+                    {competences.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                        {competences.map(tag => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => setCompetences(competences.filter(t => t !== tag))}
+                            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal-light)', color: 'var(--teal-dark)', border: '1px solid var(--teal-border)', borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                          >
+                            {tag} <span style={{ fontWeight: 800 }}>✕</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : competences.length > 0 ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {competences.map(tag => (
+                      <span key={tag} style={{ background: 'var(--teal-light)', color: 'var(--teal-dark)', borderRadius: 999, padding: '4px 12px', fontSize: 12, fontWeight: 600 }}>{tag}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={valueStyle}>—</p>
+                )}
+              </div>
+
+              {/* Tarif indicatif */}
+              <div>
+                <label style={labelStyle}>Tarif indicatif (€/h)</label>
+                {editing ? (
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={tarifHoraire}
+                    onChange={e => setTarifHoraire(e.target.value)}
+                    placeholder="Ex : 35"
+                    style={inputStyle}
+                  />
+                ) : (
+                  <p style={valueStyle}>{tarifHoraire ? `${tarifHoraire} €/h` : '—'}</p>
+                )}
+              </div>
+
+              {/* Disponibilité */}
+              <div>
+                <label style={labelStyle}>Disponible actuellement</label>
+                {editing ? (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--text-dark)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={disponible} onChange={e => setDisponible(e.target.checked)} />
+                    Je suis disponible actuellement
+                  </label>
+                ) : (
+                  <p style={valueStyle}>{disponible ? '✅ Disponible' : '⏸️ Indisponible'}</p>
+                )}
+              </div>
+
+              {/* Réalisations */}
+              <div>
+                <label style={labelStyle}>Photos de réalisations</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 6 }}>
+                  {realisations.map(url => (
+                    <div key={url} style={{ position: 'relative', width: 90, height: 90 }}>
+                      <img src={url} alt="Réalisation" style={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)' }} />
+                      {editing && (
+                        <button
+                          onClick={() => supprimerRealisation(url)}
+                          style={{ position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: 11, background: '#991B1B', color: 'white', border: 'none', fontSize: 12, fontWeight: 800, cursor: 'pointer', lineHeight: '22px' }}
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {editing && (
+                    <button
+                      onClick={() => realisationInputRef.current?.click()}
+                      disabled={uploadingRealisation}
+                      style={{ width: 90, height: 90, borderRadius: 10, border: '1.5px dashed var(--border)', background: 'var(--cream)', color: 'var(--text-muted)', fontSize: 24, cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                      {uploadingRealisation ? '⏳' : '+'}
+                    </button>
+                  )}
+                  <input ref={realisationInputRef} type="file" accept="image/jpeg,image/png,image/jpg" style={{ display: 'none' }} onChange={handleRealisationFileSelect} />
+                </div>
+                {!editing && realisations.length === 0 && <p style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic', marginTop: 4 }}>Aucune réalisation ajoutée.</p>}
               </div>
 
             </div>
