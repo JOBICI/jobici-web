@@ -68,6 +68,12 @@ export default function PublicProfile({ id }: { id: string }) {
   const [avis, setAvis] = useState<Avis[]>([]);
   const [historique, setHistorique] = useState<HistoriqueMission[]>([]);
 
+  const [avisGoogle, setAvisGoogle] = useState<{ note: number | null; nb_avis: number | null }>({ note: null, nb_avis: null });
+  const [editingGoogle, setEditingGoogle] = useState(false);
+  const [noteGoogleTemp, setNoteGoogleTemp] = useState('');
+  const [nbAvisGoogleTemp, setNbAvisGoogleTemp] = useState('');
+  const [savingGoogle, setSavingGoogle] = useState(false);
+
   const [contactModal, setContactModal] = useState(false);
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -93,20 +99,43 @@ export default function PublicProfile({ id }: { id: string }) {
       setProfile(data as Profile);
 
       if (data.statut === 'autoentrepreneur') {
-        const { data: pack } = await supabase
-          .from('user_purchases')
-          .select('id')
-          .eq('user_id', id)
-          .eq('offer_id', 'pack_visibilite_auto')
-          .eq('status', 'active')
-          .limit(1)
-          .maybeSingle();
+        const [{ data: pack }, { data: google }] = await Promise.all([
+          supabase
+            .from('user_purchases')
+            .select('id')
+            .eq('user_id', id)
+            .eq('offer_id', 'pack_visibilite_auto')
+            .eq('status', 'active')
+            .limit(1)
+            .maybeSingle(),
+          supabase
+            .from('avis_google')
+            .select('note, nb_avis')
+            .eq('profile_id', id)
+            .maybeSingle(),
+        ]);
         setFeatured(!!pack);
+        setAvisGoogle({ note: google?.note ?? null, nb_avis: google?.nb_avis ?? null });
+        setNoteGoogleTemp(google?.note != null ? String(google.note) : '');
+        setNbAvisGoogleTemp(google?.nb_avis != null ? String(google.nb_avis) : '');
       }
       setLoading(false);
     }
     load();
   }, [id]);
+
+  async function sauvegarderAvisGoogle() {
+    setSavingGoogle(true);
+    const note = noteGoogleTemp.trim() ? Number(noteGoogleTemp.replace(',', '.')) : null;
+    const nb_avis = nbAvisGoogleTemp.trim() ? Number(nbAvisGoogleTemp) : null;
+    const { error } = await supabase
+      .from('avis_google')
+      .upsert({ profile_id: id, note, nb_avis, updated_at: new Date().toISOString() });
+    setSavingGoogle(false);
+    if (error) { alert('❌ Erreur : ' + error.message); return; }
+    setAvisGoogle({ note, nb_avis });
+    setEditingGoogle(false);
+  }
 
   // Avis reçus — pour workers et auto-entrepreneurs
   useEffect(() => {
@@ -278,6 +307,50 @@ export default function PublicProfile({ id }: { id: string }) {
             )}
           </div>
         </div>
+
+        {/* ─── AVIS GOOGLE (auto-entrepreneur, édition réservée admin) ─── */}
+        {isAuto && (avisGoogle.note !== null || isAdmin) && (
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: editingGoogle ? 14 : 0 }}>
+              <div>
+                <h2 style={{ ...h2Style, marginBottom: 4 }}>🔍 Avis Google</h2>
+                {!editingGoogle && (
+                  avisGoogle.note !== null ? (
+                    <p style={{ fontSize: 14, color: 'var(--text-dark)' }}>
+                      {'⭐'.repeat(Math.round(avisGoogle.note))} <strong>{avisGoogle.note.toFixed(1)}</strong> / 5
+                      {avisGoogle.nb_avis != null && <span style={{ color: 'var(--text-muted)' }}> ({avisGoogle.nb_avis} avis)</span>}
+                    </p>
+                  ) : (
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>Aucune note renseignée.</p>
+                  )
+                )}
+              </div>
+              {isAdmin && !editingGoogle && (
+                <button onClick={() => setEditingGoogle(true)} style={btnSecondaryStyle}>Modifier</button>
+              )}
+            </div>
+            {isAdmin && editingGoogle && (
+              <div>
+                <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Note (0 à 5)</label>
+                    <input type="number" min={0} max={5} step={0.1} value={noteGoogleTemp} onChange={e => setNoteGoogleTemp(e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Nombre d'avis</label>
+                    <input type="number" min={0} step={1} value={nbAvisGoogleTemp} onChange={e => setNbAvisGoogleTemp(e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => setEditingGoogle(false)} style={btnSecondaryStyle} disabled={savingGoogle}>Annuler</button>
+                  <button onClick={sauvegarderAvisGoogle} style={btnPrimaryStyle} disabled={savingGoogle}>{savingGoogle ? '...' : 'Enregistrer'}</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ─── BIO ─── */}
         {profile.bio && (

@@ -25,6 +25,8 @@ type AutoProfile = {
   xp_total: number | null;
   niveau: number | null;
   featured: boolean; // a le pack visibilité actif
+  note_google: number | null;
+  nb_avis_google: number | null;
 };
 
 const FILTRES_RAPIDES = ['Tous', ...SUGGESTIONS_METIER.slice(0, 8)];
@@ -39,7 +41,7 @@ export default function AutoEntrepreneursPage() {
     async function load() {
       // Tous les auto-entrepreneurs sont visibles ; le pack visibilité ne fait
       // que les mettre en avant (tri + badge), ce n'est plus une condition d'accès.
-      const [{ data: autos }, { data: packs }] = await Promise.all([
+      const [{ data: autos }, { data: packs }, { data: googleAvis }] = await Promise.all([
         supabase
           .from('profiles')
           .select('id, nom, nom_commercial, ville, avatar_lettre, siret, metier, bio, competences, tarif_horaire, disponible, note_moyenne, nb_missions, xp_total, niveau')
@@ -49,13 +51,22 @@ export default function AutoEntrepreneursPage() {
           .select('user_id')
           .eq('offer_id', 'pack_visibilite_auto')
           .eq('status', 'active'),
+        supabase
+          .from('avis_google')
+          .select('profile_id, note, nb_avis'),
       ]);
 
       if (!autos) { setLoading(false); return; }
 
       const featuredIds = new Set((packs ?? []).map((p: { user_id: string }) => p.user_id));
+      const googleById = new Map((googleAvis ?? []).map((g: { profile_id: string; note: number | null; nb_avis: number | null }) => [g.profile_id, g]));
       const enriched: AutoProfile[] = autos
-        .map(a => ({ ...a, featured: featuredIds.has(a.id) }))
+        .map(a => ({
+          ...a,
+          featured: featuredIds.has(a.id),
+          note_google: googleById.get(a.id)?.note ?? null,
+          nb_avis_google: googleById.get(a.id)?.nb_avis ?? null,
+        }))
         .sort((a, b) => {
           if (a.featured !== b.featured) return a.featured ? -1 : 1;
           return (b.note_moyenne || 0) - (a.note_moyenne || 0) || (b.xp_total || 0) - (a.xp_total || 0);
@@ -244,6 +255,13 @@ function ProfileCard({ profile: p }: { profile: AutoProfile }) {
             {p.featured ? 'Contacter →' : 'Voir le profil →'}
           </span>
         </div>
+
+        {p.note_google !== null && (
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+            🔍 Google : {'⭐'.repeat(Math.round(p.note_google))} {p.note_google.toFixed(1)}
+            {p.nb_avis_google != null && ` (${p.nb_avis_google} avis)`}
+          </div>
+        )}
       </div>
     </Link>
   );
