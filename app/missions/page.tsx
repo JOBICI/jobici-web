@@ -153,7 +153,9 @@ function MissionListCard({ mission: m }: { mission: Mission }) {
           )}
         </div>
         <div style={{ padding: '14px 20px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 22, fontWeight: 900, color: 'var(--teal-dark)' }}>{m.tarif}€</span>
+          <span style={{ fontSize: 22, fontWeight: 900, color: 'var(--teal-dark)' }}>
+            {m.est_devis ? '📝 Sur devis' : `${m.tarif}€`}
+          </span>
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(m.created_at).toLocaleDateString('fr-FR')}</span>
         </div>
       </Link>

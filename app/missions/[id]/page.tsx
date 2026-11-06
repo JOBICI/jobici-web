@@ -90,6 +90,7 @@ type Mission = {
   horaires: string;
   profil_requis: string;
   tarif: number;
+  est_devis: boolean | null;
   est_urgent: boolean;
   statut: string;
   employeur_id: string;
@@ -121,6 +122,8 @@ export default function MissionDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [showDevisForm, setShowDevisForm] = useState(false);
+  const [devisPrix, setDevisPrix] = useState('');
 
   // ── Charger la mission + l'employeur ──
   useEffect(() => {
@@ -209,6 +212,19 @@ export default function MissionDetailPage() {
       return;
     }
 
+    // Mission sur devis : demander le prix proposé avant d'envoyer la candidature
+    if (mission.est_devis) {
+      setDevisPrix('');
+      setShowDevisForm(true);
+      return;
+    }
+
+    envoyerCandidature(mission.tarif);
+  }
+
+  // ── Envoyer la candidature avec un prix donné (fixe ou proposé en devis) ──
+  async function envoyerCandidature(prixPropose: number) {
+    if (!user || !mission) return;
     setSubmitting(true);
 
     try {
@@ -221,7 +237,7 @@ export default function MissionDetailPage() {
           employeur_id: mission.employeur_id,
           statut: 'en_attente',
           type: 'postulation',
-          prix_propose: mission.tarif,
+          prix_propose: prixPropose,
         });
 
       if (candError) {
@@ -260,15 +276,22 @@ export default function MissionDetailPage() {
         await supabase.from('messages').insert({
           conversation_id: conversationId,
           auteur_id: user.id,
-          texte: `Bonjour, je suis intéressé(e) par votre mission "${mission.titre}". Je suis disponible !\n\n👤 Consultez mon profil (expériences, CV, lettre de motivation) : ${siteUrl}/profil/${user.id}`,
+          texte: mission.est_devis
+            ? `Bonjour, je suis intéressé(e) par votre mission "${mission.titre}". Je vous propose un devis de ${prixPropose} €.\n\n👤 Consultez mon profil (expériences, CV, lettre de motivation) : ${siteUrl}/profil/${user.id}`
+            : `Bonjour, je suis intéressé(e) par votre mission "${mission.titre}". Je suis disponible !\n\n👤 Consultez mon profil (expériences, CV, lettre de motivation) : ${siteUrl}/profil/${user.id}`,
           type: 'normal',
         });
       }
 
       setAlreadyApplied(true);
       setSubmitting(false);
+      setShowDevisForm(false);
 
-      alert(`✅ Candidature envoyée !\n\nVotre candidature pour "${mission.titre}" a été transmise. Vous pouvez maintenant échanger par message.`);
+      alert(
+        mission.est_devis
+          ? `✅ Devis envoyé !\n\nVotre proposition de ${prixPropose} € pour "${mission.titre}" a été transmise. Vous pouvez maintenant échanger par message.`
+          : `✅ Candidature envoyée !\n\nVotre candidature pour "${mission.titre}" a été transmise. Vous pouvez maintenant échanger par message.`
+      );
       router.push('/messages');
 
     } catch (err: any) {
@@ -338,7 +361,7 @@ export default function MissionDetailPage() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
             <span style={{ fontSize: 32, fontWeight: 900, color: 'var(--teal-dark)' }}>
-              {mission.tarif}€
+              {mission.est_devis ? '📝 Sur devis' : `${mission.tarif}€`}
             </span>
             {mission.duree && (
               <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>· {mission.duree}</span>
@@ -424,6 +447,41 @@ export default function MissionDetailPage() {
                 Voir la conversation →
               </Link>
             </div>
+          ) : showDevisForm ? (
+            <div style={{ background: 'white', border: '1.5px solid var(--teal-border)', borderRadius: 14, padding: 20 }}>
+              <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>
+                📝 Proposer votre devis
+              </p>
+              <p style={{ fontSize: 12, color: 'var(--text-mid)', marginBottom: 12, lineHeight: 1.5 }}>
+                Indiquez le montant que vous proposez pour "{mission.titre}". L'employeur pourra l'accepter ou négocier avec vous.
+              </p>
+              <input
+                type="number" min="1" step="0.01" autoFocus
+                value={devisPrix}
+                onChange={e => setDevisPrix(e.target.value)}
+                placeholder="Montant en € — Ex : 80"
+                style={{ width: '100%', padding: '12px 14px', border: '1.5px solid var(--border)', borderRadius: 10, fontSize: 14, outline: 'none', background: 'var(--cream)', fontFamily: 'inherit' }}
+              />
+              <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                <button
+                  onClick={() => setShowDevisForm(false)}
+                  style={{ flex: 1, background: 'white', color: 'var(--text-mid)', padding: 14, border: '1px solid var(--border)', borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={() => {
+                    const prixNum = parseFloat(devisPrix);
+                    if (isNaN(prixNum) || prixNum <= 0) { alert('Indiquez un montant supérieur à 0 pour votre devis.'); return; }
+                    envoyerCandidature(prixNum);
+                  }}
+                  disabled={submitting}
+                  style={{ flex: 1, background: 'var(--teal)', color: 'var(--navy)', padding: 14, border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: submitting ? 0.6 : 1 }}
+                >
+                  {submitting ? 'Envoi...' : 'Envoyer le devis'}
+                </button>
+              </div>
+            </div>
           ) : (
             <button
               onClick={handlePostuler}
@@ -435,7 +493,13 @@ export default function MissionDetailPage() {
                 fontFamily: 'inherit', opacity: submitting ? 0.6 : 1,
               }}
             >
-              {submitting ? 'Envoi...' : !user ? 'Se connecter pour postuler' : 'Postuler à cette mission →'}
+              {submitting
+                ? 'Envoi...'
+                : !user
+                  ? 'Se connecter pour postuler'
+                  : mission.est_devis
+                    ? '📝 Envoyer un devis →'
+                    : 'Postuler à cette mission →'}
             </button>
           )}
         </div>

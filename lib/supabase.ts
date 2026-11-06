@@ -19,6 +19,7 @@ export type Mission = {
   horaires: string;
   profil_requis: string;
   tarif: number;
+  est_devis?: boolean;
   est_urgent: boolean;
   statut: string;
 };

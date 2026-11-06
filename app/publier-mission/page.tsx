@@ -51,6 +51,7 @@ export default function PublierMissionPage() {
   const [date, setDate]           = useState('');
   const [horaires, setHoraires]   = useState('');
   const [tarif, setTarif]         = useState('');
+  const [estDevis, setEstDevis]   = useState(false);
   const [boost, setBoost]         = useState('aucun');
   const [profilRequis, setProfilRequis] = useState('');
   const [estDangereuse, setEstDangereuse] = useState(false);
@@ -97,6 +98,11 @@ export default function PublierMissionPage() {
       return;
     }
 
+    if (!estDevis && (!tarif || tarifNum <= 0)) {
+      setError('Indiquez un tarif, ou choisissez "Demander un devis".');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -111,7 +117,8 @@ export default function PublierMissionPage() {
       date_mission: date,
       horaires: horaires.trim(),
       profil_requis: profilRequis.trim(),
-      tarif: parseFloat(tarif),
+      tarif: estDevis ? 0 : parseFloat(tarif),
+      est_devis: estDevis,
       est_urgent: boost === 'sos',
       boost: boost,
       age_minimum: ageMinAuto,
@@ -294,20 +301,59 @@ export default function PublierMissionPage() {
               )}
             </div>
 
-            <label style={labelStyle}>Tarif proposé (€) *</label>
-            <input type="number" required min="15" step="0.01" value={tarif}
-              onChange={e => setTarif(e.target.value)}
-              placeholder="Ex : 30" style={inputStyle} />
+            <label style={labelStyle}>Tarification *</label>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setEstDevis(false)}
+                style={{
+                  flex: 1, padding: '12px 14px', textAlign: 'center', cursor: 'pointer',
+                  background: !estDevis ? 'var(--teal-light)' : 'white',
+                  border: `2px solid ${!estDevis ? 'var(--teal)' : 'var(--border)'}`,
+                  borderRadius: 10, fontFamily: 'inherit', fontWeight: 700, fontSize: 13,
+                  color: !estDevis ? 'var(--teal-dark)' : 'var(--text-mid)',
+                }}
+              >
+                💰 Prix fixe
+              </button>
+              <button
+                type="button"
+                onClick={() => setEstDevis(true)}
+                style={{
+                  flex: 1, padding: '12px 14px', textAlign: 'center', cursor: 'pointer',
+                  background: estDevis ? 'var(--teal-light)' : 'white',
+                  border: `2px solid ${estDevis ? 'var(--teal)' : 'var(--border)'}`,
+                  borderRadius: 10, fontFamily: 'inherit', fontWeight: 700, fontSize: 13,
+                  color: estDevis ? 'var(--teal-dark)' : 'var(--text-mid)',
+                }}
+              >
+                📝 Demander un devis
+              </button>
+            </div>
 
-            {tarifBas && tarifHaut && (
-              <div style={{ background: 'var(--teal-light)', border: '1px solid var(--teal-border)', borderRadius: 10, padding: 12, marginTop: 8 }}>
-                <p style={{ fontSize: 13, color: 'var(--teal-dark)', fontWeight: 700 }}>
-                  💡 Tarif conseillé : entre {tarifBas}€ et {tarifHaut}€ pour {duree}h
-                </p>
-                <p style={{ fontSize: 11, color: 'var(--text-mid)', marginTop: 4 }}>
-                  Minimum 15€ par mission. Un tarif juste attire plus de candidats sérieux.
+            {estDevis ? (
+              <div style={{ background: 'var(--teal-light)', border: '1px solid var(--teal-border)', borderRadius: 10, padding: 12, marginTop: 10 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-mid)', lineHeight: 1.5 }}>
+                  📝 Pas de prix fixé : les candidats vous proposeront leur tarif en postulant. Vous pourrez accepter ou négocier via la conversation.
                 </p>
               </div>
+            ) : (
+              <>
+                <input type="number" required min="15" step="0.01" value={tarif}
+                  onChange={e => setTarif(e.target.value)}
+                  placeholder="Ex : 30" style={{ ...inputStyle, marginTop: 10 }} />
+
+                {tarifBas && tarifHaut && (
+                  <div style={{ background: 'var(--teal-light)', border: '1px solid var(--teal-border)', borderRadius: 10, padding: 12, marginTop: 8 }}>
+                    <p style={{ fontSize: 13, color: 'var(--teal-dark)', fontWeight: 700 }}>
+                      💡 Tarif conseillé : entre {tarifBas}€ et {tarifHaut}€ pour {duree}h
+                    </p>
+                    <p style={{ fontSize: 11, color: 'var(--text-mid)', marginTop: 4 }}>
+                      Minimum 15€ par mission. Un tarif juste attire plus de candidats sérieux.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
 
             {/* ═══ SECTION BOOST ═══ */}
@@ -365,7 +411,7 @@ export default function PublierMissionPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--text-mid)' }}>Le travailleur reçoit (100% du tarif)</span>
-                  <span style={{ fontWeight: 700, color: 'var(--navy)' }}>{tarifNum || 0}€</span>
+                  <span style={{ fontWeight: 700, color: 'var(--navy)' }}>{estDevis ? 'Sur devis' : `${tarifNum || 0}€`}</span>
                 </div>
               </div>
               <p style={{ fontSize: 12, color: 'var(--text-mid)', marginTop: 12, lineHeight: 1.5 }}>
