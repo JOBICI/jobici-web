@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import UtilisateurDetailModal from './UtilisateurDetailModal';
 
 type Profile = {
   id: string;
@@ -29,6 +30,7 @@ export default function UtilisateursPanel({
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtre, setFiltre] = useState<'tous' | 'verifies' | 'non_verifies'>('tous');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const charger = useCallback(async () => {
     setLoading(true);
@@ -82,13 +84,13 @@ export default function UtilisateursPanel({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.map(u => (
-            <div key={u.id} style={{
+            <div key={u.id} onClick={() => setSelectedId(u.id)} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
               background: 'white', borderRadius: 12, padding: '14px 18px', border: '1px solid var(--border)',
-              flexWrap: 'wrap',
+              flexWrap: 'wrap', cursor: 'pointer',
             }}>
               <div>
-                <Link href={`/profil/${u.id}`} target="_blank" style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', textDecoration: 'underline' }}>
+                <Link href={`/profil/${u.id}`} target="_blank" onClick={e => e.stopPropagation()} style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', textDecoration: 'underline' }}>
                   {u.nom || 'Sans nom'}
                 </Link>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
@@ -110,6 +112,10 @@ export default function UtilisateursPanel({
             </div>
           ))}
         </div>
+      )}
+
+      {selectedId && (
+        <UtilisateurDetailModal userId={selectedId} onClose={() => setSelectedId(null)} onResult={onResult} />
       )}
     </div>
   );
