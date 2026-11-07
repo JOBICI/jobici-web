@@ -9,6 +9,8 @@ import { useAuth } from '@/lib/AuthContext';
 import CreerProForm from '@/components/CreerProForm';
 import ValiderDocumentsPanel from '@/components/ValiderDocumentsPanel';
 import UtilisateursPanel from '@/components/UtilisateursPanel';
+import MissionsPanel from '@/components/MissionsPanel';
+import AvisPanel from '@/components/AvisPanel';
 
 const ADMIN_EMAIL = 'contact@job-ici.com';
 
@@ -47,7 +49,7 @@ export default function AdminPage() {
   const [contratModal, setContratModal] = useState<Candidature | null>(null);
   const [contratTexte, setContratTexte] = useState('');
   const [contratFile, setContratFile] = useState<File | null>(null);
-  const [vue, setVue] = useState<'candidatures' | 'creer-pro' | 'documents' | 'utilisateurs'>('candidatures');
+  const [vue, setVue] = useState<'candidatures' | 'creer-pro' | 'documents' | 'utilisateurs' | 'missions' | 'avis'>('candidatures');
 
   function showToast(type: 'success' | 'error', msg: string) {
     setToast({ type, msg });
@@ -230,6 +232,8 @@ export default function AdminPage() {
         <div style={{ display: 'flex', gap: 8, marginBottom: 28, borderBottom: '1px solid var(--border)' }}>
           {[
             { id: 'candidatures' as const, label: '📋 Candidatures' },
+            { id: 'missions' as const, label: '🗂️ Missions' },
+            { id: 'avis' as const, label: '⭐ Avis' },
             { id: 'documents' as const, label: '🪪 Documents à valider' },
             { id: 'utilisateurs' as const, label: '👥 Utilisateurs' },
             { id: 'creer-pro' as const, label: '🏢 Créer un Professionnel' },
@@ -253,6 +257,10 @@ export default function AdminPage() {
           <ValiderDocumentsPanel onResult={showToast} />
         ) : vue === 'utilisateurs' ? (
           <UtilisateursPanel onResult={showToast} />
+        ) : vue === 'missions' ? (
+          <MissionsPanel onResult={showToast} />
+        ) : vue === 'avis' ? (
+          <AvisPanel onResult={showToast} />
         ) : (
         <>
         {/* Filtres */}
