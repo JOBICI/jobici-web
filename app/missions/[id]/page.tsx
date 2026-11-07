@@ -212,6 +212,13 @@ export default function MissionDetailPage() {
       return;
     }
 
+    // Les missions de particuliers sont réservées aux auto-entrepreneurs (CESU
+    // en attente DGE) : un travailleur salarié ne peut pas postuler.
+    if (isWorkerBlockedByCESU) {
+      alert('🚫 Les missions de particuliers sont réservées aux auto-entrepreneurs via le système CESU. En tant que travailleur salarié, vous pouvez postuler aux missions des professionnels.');
+      return;
+    }
+
     // Mission sur devis : demander le prix proposé avant d'envoyer la candidature
     if (mission.est_devis) {
       setDevisPrix('');
@@ -330,7 +337,9 @@ export default function MissionDetailPage() {
 
   const isPro = employeur?.statut === 'employer' || employeur?.statut === 'autoentrepreneur';
   const isOwner = user?.id === mission.employeur_id;
-  const isWorker = userProfile?.statut === 'worker' || userProfile?.statut === 'autoentrepreneur';
+  // Missions de particuliers : réservées aux auto-entrepreneurs uniquement (CESU en attente DGE).
+  const isParticulierMission = employeur?.statut === 'particulier';
+  const isWorkerBlockedByCESU = userProfile?.statut === 'worker' && isParticulierMission;
 
   return (
     <>
@@ -436,6 +445,15 @@ export default function MissionDetailPage() {
             <div style={{ background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, textAlign: 'center' }}>
               <p style={{ fontSize: 14, color: 'var(--text-mid)', fontWeight: 600 }}>
                 C'est votre mission. Les candidatures apparaîtront dans vos messages.
+              </p>
+            </div>
+          ) : isWorkerBlockedByCESU ? (
+            <div style={{ background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: 14, padding: 18, textAlign: 'center' }}>
+              <p style={{ fontSize: 14, color: '#991B1B', fontWeight: 700 }}>
+                🚫 Réservé aux auto-entrepreneurs
+              </p>
+              <p style={{ fontSize: 12, color: '#991B1B', marginTop: 4 }}>
+                Les missions de particuliers sont accessibles uniquement aux auto-entrepreneurs (système CESU). Postulez aux missions des professionnels !
               </p>
             </div>
           ) : alreadyApplied ? (
