@@ -182,6 +182,13 @@ export default function MissionDetailPage() {
     }
     if (!mission) return;
 
+    // Un particulier ne fournit jamais de prestation : il publie des missions,
+    // il ne postule jamais à celles des autres.
+    if (userProfile?.statut === 'particulier') {
+      alert('🚫 En tant que particulier, vous ne pouvez pas postuler à une mission — vous pouvez en publier une.');
+      return;
+    }
+
     // Empêcher de postuler à sa propre mission
     if (user.id === mission.employeur_id) {
       alert("Vous ne pouvez pas postuler à votre propre mission.");
@@ -445,6 +452,12 @@ export default function MissionDetailPage() {
             <div style={{ background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, textAlign: 'center' }}>
               <p style={{ fontSize: 14, color: 'var(--text-mid)', fontWeight: 600 }}>
                 C'est votre mission. Les candidatures apparaîtront dans vos messages.
+              </p>
+            </div>
+          ) : userProfile?.statut === 'particulier' ? (
+            <div style={{ background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, textAlign: 'center' }}>
+              <p style={{ fontSize: 14, color: 'var(--text-mid)', fontWeight: 700 }}>
+                🚫 Réservé aux travailleurs et auto-entrepreneurs
               </p>
             </div>
           ) : isWorkerBlockedByCESU ? (
