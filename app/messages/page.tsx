@@ -20,8 +20,8 @@ type Conversation = {
   statut: string;
   created_at: string;
   missions?: { titre: string; tarif: number; emoji: string; type: string };
-  travailleur?: { nom: string; avatar_lettre: string };
-  employeur?: { nom: string; avatar_lettre: string };
+  travailleur?: { nom: string; avatar_lettre: string; statut?: string };
+  employeur?: { nom: string; avatar_lettre: string; statut?: string };
   derniere_message?: string;
   derniere_message_date?: string;
   non_lu?: boolean;
@@ -37,6 +37,8 @@ type Message = {
   type: string;
   offre_prix: number | null;
   offre_statut: string | null;
+  offre_titre?: string | null;
+  offre_avec_contrat?: boolean | null;
   created_at: string;
 };
 
@@ -62,7 +64,7 @@ function MessagesPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const convParam = searchParams.get('conv');
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -87,6 +89,13 @@ function MessagesPageInner() {
   const [ratingNote, setRatingNote] = useState(0);
   const [ratingComment, setRatingComment] = useState('');
   const [finishing, setFinishing] = useState(false);
+  const [showEtablirMission, setShowEtablirMission] = useState(false);
+  const [offreTitreTemp, setOffreTitreTemp] = useState('');
+  const [offreTarifTemp, setOffreTarifTemp] = useState('');
+  const [offreDescTemp, setOffreDescTemp] = useState('');
+  const [offreAvecContratTemp, setOffreAvecContratTemp] = useState(false);
+  const [sendingOffre, setSendingOffre] = useState(false);
+  const [repondantOffreId, setRepondantOffreId] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -112,8 +121,8 @@ function MessagesPageInner() {
       .select(`
         *,
         missions(titre, tarif, emoji, type),
-        travailleur:profiles!travailleur_id(nom, avatar_lettre),
-        employeur:profiles!employeur_id(nom, avatar_lettre)
+        travailleur:profiles!travailleur_id(nom, avatar_lettre, statut),
+        employeur:profiles!employeur_id(nom, avatar_lettre, statut)
       `)
       .order('created_at', { ascending: false });
     // L'admin voit toutes les conversations (support, suivi des mises en relation)
@@ -353,14 +362,64 @@ function MessagesPageInner() {
     alert('✅ Utilisateur débloqué.');
   }
 
+  // Envoie une offre ("Établir une mission") dans une conversation directe.
+  // L'autre partie devra l'accepter pour que la mission soit réellement créée.
+  async function envoyerOffre() {
+    if (!user || !activeConv) return;
+    const titre = offreTitreTemp.trim();
+    const tarifNum = Number(offreTarifTemp.replace(',', '.'));
+    if (!titre) { alert('Donnez un titre à la mission.'); return; }
+    if (!tarifNum || tarifNum <= 0) { alert('Indiquez un tarif supérieur à 0.'); return; }
+
+    const estClient = (s?: string | null) => s === 'particulier' || s === 'employer';
+    const clientEstPro = estClient(userProfile?.statut) ? userProfile?.statut === 'employer' : getOther(activeConv)?.statut === 'employer';
+
+    setSendingOffre(true);
+    const { error } = await supabase.from('messages').insert({
+      conversation_id: activeConv.id,
+      auteur_id: user.id,
+      texte: offreDescTemp.trim(),
+      type: 'offre',
+      offre_prix: tarifNum,
+      offre_titre: titre,
+      offre_avec_contrat: clientEstPro ? offreAvecContratTemp : null,
+      offre_statut: 'en_attente',
+    });
+    setSendingOffre(false);
+
+    if (error) { alert("Impossible d'envoyer l'offre : " + error.message); return; }
+
+    setShowEtablirMission(false);
+    setOffreTitreTemp(''); setOffreTarifTemp(''); setOffreDescTemp(''); setOffreAvecContratTemp(false);
+    const { data } = await supabase.from('messages').select('*').eq('conversation_id', activeConv.id).order('created_at', { ascending: true });
+    if (data) setMessages(data as Message[]);
+  }
+
+  // Accepter/refuser une offre doit passer par le serveur (service_role) : la
+  // création de la mission exige auth.uid() = employeur_id, ce que le
+  // destinataire de l'offre n'est pas forcément.
   async function repondreOffre(messageId: string, accepte: boolean) {
-    const { error } = await supabase
-      .from('messages')
-      .update({ offre_statut: accepte ? 'acceptee' : 'refusee' })
-      .eq('id', messageId);
-    if (!error) {
-      setMessages(prev => prev.map(m => m.id === messageId ? { ...m, offre_statut: accepte ? 'acceptee' : 'refusee' } : m));
+    setRepondantOffreId(messageId);
+    const { data, error } = await supabase.functions.invoke('swift-endpoint', {
+      body: { event: 'repondre_offre', message_id: messageId, reponse: accepte ? 'acceptee' : 'refusee' },
+    });
+    setRepondantOffreId(null);
+
+    if (error || (data as { error?: string } | null)?.error) {
+      alert((data as { error?: string } | null)?.error || "L'offre n'a pas pu être traitée. Réessayez.");
+      return;
     }
+
+    setMessages(prev => prev.map(m => m.id === messageId ? { ...m, offre_statut: accepte ? 'acceptee' : 'refusee' } : m));
+    if (accepte && activeConv) {
+      const { data: cand } = await supabase
+        .from('candidatures')
+        .select('id, statut')
+        .eq('mission_id', (data as { mission_id?: string })?.mission_id)
+        .maybeSingle();
+      if (cand) { setCandId(cand.id); setCandStatut(cand.statut); }
+    }
+    alert(accepte ? '✅ Offre acceptée. La mission est établie.' : "❌ Offre refusée.");
   }
 
   if (authLoading || loadingConv) {
@@ -384,6 +443,28 @@ function MessagesPageInner() {
     const blockedByMe = blocages.bloquesParMoi.includes(otherId);
     const blockedMe = blocages.mOntBloque.includes(otherId);
     const conversationBloquee = blockedByMe || blockedMe;
+
+    // "Établir une mission" : possible entre un côté "client" (particulier/
+    // professionnel) et un côté "prestataire" (travailleur/auto-entrepreneur),
+    // dans un sens ou dans l'autre — soit le client propose une mission, soit
+    // le prestataire envoie directement son devis depuis la conversation.
+    // Un particulier ne peut en revanche jamais établir de mission avec un
+    // travailleur salarié (réservé aux auto-entrepreneurs, CESU en attente DGE).
+    const isDirect = !activeConv.mission_id;
+    const monStatut = userProfile?.statut as string | undefined;
+    const autreStatut = other?.statut;
+    const offreExistante = messages.some(m => m.type === 'offre' && m.offre_statut !== 'refusee');
+    const estClient = (s?: string | null) => s === 'particulier' || s === 'employer';
+    const estPrestataire = (s?: string | null) => s === 'worker' || s === 'autoentrepreneur';
+    const paireValide =
+      (estClient(monStatut) && estPrestataire(autreStatut)) ||
+      (estPrestataire(monStatut) && estClient(autreStatut));
+    const paireParticulierTravailleur =
+      (monStatut === 'particulier' && autreStatut === 'worker') ||
+      (monStatut === 'worker' && autreStatut === 'particulier');
+    const peutEtablirMission = !isAdmin && isDirect && paireValide && !paireParticulierTravailleur && !offreExistante;
+    const clientEstPro = estClient(monStatut) ? monStatut === 'employer' : autreStatut === 'employer';
+
     return (
       <>
         <Header />
@@ -491,19 +572,19 @@ function MessagesPageInner() {
                     {senderLabel}
                     <div style={{ background: roleBg, border: `1.5px solid ${roleColor}`, borderRadius: 16, padding: '12px 16px' }}>
                       <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: 'var(--teal-dark, #0a8a7a)' }}>
-                        💰 OFFRE DE NÉGOCIATION
+                        📋 {m.offre_titre ? m.offre_titre.toUpperCase() : 'OFFRE DE NÉGOCIATION'}
                       </p>
                       <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', margin: '6px 0' }}>
                         {m.offre_prix} €
                       </p>
                       {m.offre_statut === 'en_attente' && !isMine && !isAdmin && (
                         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                          <button onClick={() => repondreOffre(m.id, true)}
-                            style={{ background: 'var(--teal)', color: 'var(--navy)', border: 'none', borderRadius: 8, padding: '7px 14px', fontWeight: 800, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                            Accepter
+                          <button onClick={() => repondreOffre(m.id, true)} disabled={repondantOffreId === m.id}
+                            style={{ background: 'var(--teal)', color: 'var(--navy)', border: 'none', borderRadius: 8, padding: '7px 14px', fontWeight: 800, fontSize: 12, cursor: repondantOffreId === m.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: repondantOffreId === m.id ? 0.5 : 1 }}>
+                            {repondantOffreId === m.id ? '…' : 'Accepter'}
                           </button>
-                          <button onClick={() => repondreOffre(m.id, false)}
-                            style={{ background: 'transparent', color: 'var(--urgent)', border: '1px solid var(--urgent)', borderRadius: 8, padding: '7px 14px', fontWeight: 800, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                          <button onClick={() => repondreOffre(m.id, false)} disabled={repondantOffreId === m.id}
+                            style={{ background: 'transparent', color: 'var(--urgent)', border: '1px solid var(--urgent)', borderRadius: 8, padding: '7px 14px', fontWeight: 800, fontSize: 12, cursor: repondantOffreId === m.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: repondantOffreId === m.id ? 0.5 : 1 }}>
                             Refuser
                           </button>
                         </div>
@@ -558,6 +639,19 @@ function MessagesPageInner() {
               );
             })}
           </div>
+
+          {peutEtablirMission && !conversationBloquee && (
+            <button
+              onClick={() => setShowEtablirMission(true)}
+              style={{
+                background: 'var(--teal-light)', border: '1.5px solid var(--teal-border)', borderRadius: 12,
+                padding: '10px 16px', fontWeight: 800, fontSize: 13, color: 'var(--teal-dark)',
+                cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8, textAlign: 'left',
+              }}
+            >
+              📋 Établir une mission avec {other?.nom || 'cette personne'}
+            </button>
+          )}
 
           {!conversationBloquee && (
             <div style={{ display: 'flex', gap: 8, padding: '12px 0', borderTop: '1px solid var(--border)' }}>
@@ -629,6 +723,72 @@ function MessagesPageInner() {
                   style={{ flex: 1, padding: '12px 0', borderRadius: 999, border: 'none', background: 'var(--urgent)', color: 'white', fontWeight: 800, fontSize: 14, cursor: reportSending ? 'not-allowed' : 'pointer', opacity: reportSending ? 0.6 : 1, fontFamily: 'inherit' }}
                 >
                   {reportSending ? '…' : 'Signaler'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showEtablirMission && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,45,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, padding: 16 }}>
+            <div style={{ background: 'white', borderRadius: 16, padding: 24, maxWidth: 420, width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
+              <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>
+                Établir une mission
+              </h3>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
+                Avec {other?.nom || 'cette personne'} · elle devra accepter pour que la mission soit créée.
+              </p>
+
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--navy)', marginBottom: 6 }}>Titre de la mission</label>
+              <input
+                type="text" value={offreTitreTemp} onChange={e => setOffreTitreTemp(e.target.value)}
+                placeholder="Ex : Ménage hebdomadaire" maxLength={80}
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--border)', borderRadius: 10, fontSize: 13, outline: 'none', fontFamily: 'inherit', marginBottom: 14 }}
+              />
+
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--navy)', marginBottom: 6 }}>Tarif (€)</label>
+              <input
+                type="number" value={offreTarifTemp} onChange={e => setOffreTarifTemp(e.target.value)}
+                placeholder="Ex : 80"
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--border)', borderRadius: 10, fontSize: 13, outline: 'none', fontFamily: 'inherit', marginBottom: 14 }}
+              />
+
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--navy)', marginBottom: 6 }}>Description (facultatif)</label>
+              <textarea
+                value={offreDescTemp} onChange={e => setOffreDescTemp(e.target.value)}
+                placeholder="Détails de la mission…" rows={3} maxLength={800}
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--border)', borderRadius: 10, fontSize: 13, outline: 'none', fontFamily: 'inherit', resize: 'vertical', marginBottom: 14 }}
+              />
+
+              {clientEstPro && (
+                <>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--navy)', marginBottom: 6 }}>Contrat</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                    <button type="button" onClick={() => setOffreAvecContratTemp(false)}
+                      style={{ textAlign: 'left', padding: '10px 14px', borderRadius: 10, fontFamily: 'inherit', border: !offreAvecContratTemp ? '1.5px solid var(--teal)' : '1.5px solid var(--border)', background: !offreAvecContratTemp ? 'var(--teal-light)' : 'transparent', fontWeight: 700, fontSize: 13, cursor: 'pointer', color: 'var(--navy)' }}>
+                      Sans contrat (15 % chaque mois)
+                    </button>
+                    <button type="button" onClick={() => setOffreAvecContratTemp(true)}
+                      style={{ textAlign: 'left', padding: '10px 14px', borderRadius: 10, fontFamily: 'inherit', border: offreAvecContratTemp ? '1.5px solid var(--teal)' : '1.5px solid var(--border)', background: offreAvecContratTemp ? 'var(--teal-light)' : 'transparent', fontWeight: 700, fontSize: 13, cursor: 'pointer', color: 'var(--navy)' }}>
+                      Avec contrat Jobici (20 % puis 15 %)
+                    </button>
+                  </div>
+                </>
+              )}
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => setShowEtablirMission(false)}
+                  style={{ flex: 1, padding: '12px 0', borderRadius: 999, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-dark)', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={envoyerOffre}
+                  disabled={sendingOffre}
+                  style={{ flex: 1, padding: '12px 0', borderRadius: 999, border: 'none', background: 'var(--teal)', color: 'var(--navy)', fontWeight: 800, fontSize: 14, cursor: sendingOffre ? 'not-allowed' : 'pointer', opacity: sendingOffre ? 0.6 : 1, fontFamily: 'inherit' }}
+                >
+                  {sendingOffre ? '…' : 'Envoyer'}
                 </button>
               </div>
             </div>

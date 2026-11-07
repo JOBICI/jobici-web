@@ -21,6 +21,7 @@ type Candidature = {
   message: string | null;
   mission_id: string;
   travailleur_id: string;
+  prix_propose: number | null;
   mission: { titre: string; ville: string; tarif: number; duree_mois: number | null; commission_totale: number | null; avec_contrat: boolean | null; employeur_id: string } | null;
   travailleur: { id: string; nom: string; email_contact: string | null; est_verifie: boolean | null } | null;
   employeur: { id: string; nom: string; email_contact: string | null } | null;
@@ -64,7 +65,7 @@ export default function AdminPage() {
     setLoading(true);
     const { data } = await supabase
       .from('candidatures')
-      .select('id, created_at, statut, message, mission_id, travailleur_id')
+      .select('id, created_at, statut, message, mission_id, travailleur_id, prix_propose')
       .order('created_at', { ascending: false });
 
     if (!data) { setLoading(false); return; }
@@ -107,7 +108,12 @@ export default function AdminPage() {
     // La mission ne doit plus apparaître dans les missions disponibles une fois
     // pourvue, et redevient disponible si on annule l'acceptation.
     if (statut === 'acceptee') {
-      await supabase.from('missions').update({ statut: 'pourvue' }).eq('id', c.mission_id);
+      // Mission sur devis (tarif=0 à la publication) : le tarif définitif est le
+      // prix proposé par le candidat accepté — sans ça il resterait à 0 pour
+      // toujours puisque rien d'autre ne l'écrit.
+      const missionUpdate: Record<string, unknown> = { statut: 'pourvue' };
+      if (c.prix_propose != null) missionUpdate.tarif = c.prix_propose;
+      await supabase.from('missions').update(missionUpdate).eq('id', c.mission_id);
     } else if (statut === 'en_attente' || statut === 'refusee') {
       await supabase.from('missions').update({ statut: 'active' }).eq('id', c.mission_id);
     }
