@@ -83,8 +83,12 @@ export default function PublicProfile({ id }: { id: string }) {
   const isAuto = profile?.statut === 'autoentrepreneur';
   const isWorker = profile?.statut === 'worker';
   const canContact = !!user && !!profile && user.id !== profile.id;
-  const isMissionContext = (userProfile?.statut === 'employer' || userProfile?.statut === 'particulier')
-    && (isWorker || isAuto);
+  // Un particulier ne peut jamais engager un travailleur salarié (réservé aux
+  // auto-entrepreneurs, CESU en attente DGE) : pas de "proposer une mission"
+  // dans ce cas, juste un message classique.
+  const isMissionContext = isAuto
+    ? (userProfile?.statut === 'employer' || userProfile?.statut === 'particulier')
+    : isWorker && userProfile?.statut === 'employer';
 
   useEffect(() => {
     async function load() {
