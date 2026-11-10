@@ -54,7 +54,6 @@ export default function ConfidentialitePage() {
             <li>Adresse postale, ville</li>
             <li>Photo de profil (optionnelle)</li>
             <li>Carte d'identité (pour vérification)</li>
-            <li>Carte vitale (pour mandat CESU)</li>
           </ul>
 
           <h3 style={h3Style}>2.2 Données pour les mineurs (14-17 ans)</h3>
@@ -98,7 +97,6 @@ export default function ConfidentialitePage() {
             <li>Créer et gérer votre compte utilisateur</li>
             <li>Permettre la mise en relation entre travailleurs et employeurs</li>
             <li>Traiter les paiements via Stripe</li>
-            <li>Assurer le mandat CESU (déclarations URSSAF)</li>
             <li>Vérifier votre identité et lutter contre la fraude</li>
             <li>Vous envoyer des notifications relatives à votre activité</li>
             <li>Améliorer nos services (analyses statistiques anonymisées)</li>
@@ -109,7 +107,7 @@ export default function ConfidentialitePage() {
           <p style={pStyle}>Conformément à l'article 6 du RGPD, nous traitons vos données sur les bases suivantes :</p>
           <ul style={ulStyle}>
             <li><strong>Exécution du contrat</strong> : pour fournir nos services à nos utilisateurs</li>
-            <li><strong>Obligation légale</strong> : pour les déclarations URSSAF, fiscales, etc.</li>
+            <li><strong>Obligation légale</strong> : pour les déclarations fiscales, etc.</li>
             <li><strong>Consentement</strong> : pour les communications marketing</li>
             <li><strong>Intérêt légitime</strong> : pour la sécurité et la lutte contre la fraude</li>
           </ul>
@@ -129,7 +127,6 @@ export default function ConfidentialitePage() {
             <li><strong>Les autres utilisateurs de Jobici</strong> (nom, ville, note, profil public) pour la mise en relation</li>
             <li><strong>Stripe Inc.</strong> pour le traitement des paiements</li>
             <li><strong>Supabase Inc.</strong> pour le stockage sécurisé des données</li>
-            <li><strong>L'URSSAF</strong> pour les déclarations CESU (mandat)</li>
             <li><strong>Autorités administratives ou judiciaires</strong> sur demande légale</li>
           </ul>
           <p style={pStyle}>
